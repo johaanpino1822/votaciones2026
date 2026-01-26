@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
-  LogOut,
   User,
   Key,
   Check

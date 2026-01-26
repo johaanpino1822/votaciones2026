@@ -90,45 +90,6 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-      {/* Navigation Bar */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                <Vote className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                IEFAG Elecciones 2025
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <div className="flex items-center space-x-3">
-                  <div className="text-right hidden sm:block">
-                    <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                    <div className="text-xs text-gray-500">
-                      {user.isAdmin ? 'Administrador' : 'Estudiante'}
-                    </div>
-                  </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-                </div>
-              ) : (
-                <Link
-                  to="/voting"
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300 hover:scale-105"
-                >
-                  Acceder
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="relative overflow-hidden py-24 px-4 sm:px-6 lg:px-8">
         {/* Background Effects */}
