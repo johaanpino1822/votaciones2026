@@ -245,10 +245,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               const percentage = totalVotes > 0 
                 ? ((votes / totalVotes) * 100).toFixed(1)
                 : '0.0';
-              return [
-                `Votos: ${votes}`,
-                `Porcentaje: ${percentage}%`
-              ];
+              return `Votos: ${votes} (${percentage}%)`;
             }
           }
         }
@@ -798,7 +795,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-medium shadow-md"
           >
             <Download className="w-4 h-4" />
-            Exportar Ahora.l
+            Exportar Ahora
           </button>
         </div>
       </div>
