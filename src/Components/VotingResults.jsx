@@ -11,7 +11,6 @@ import {
   LineElement,
   PointElement
 } from 'chart.js';
-import { Card } from './ui/Card';
 import { 
   TrendingUp, 
   Users, 
@@ -32,10 +31,7 @@ import {
   Medal
 } from 'lucide-react';
 
-// Importar react-pdf
-import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
-
-// Registrar elementos necesarios de Chart.js
+// Registrar elementos de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -47,369 +43,45 @@ ChartJS.register(
   PointElement
 );
 
-// Estilos para el PDF
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: 'column',
-    backgroundColor: '#ffffff',
-    padding: 30,
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottom: '2 solid #3b82f6',
-  },
-  title: {
-    fontSize: 24,
-    color: '#1e3a8a',
-    marginBottom: 10,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#4b5563',
-    marginBottom: 5,
-  },
-  electionTitle: {
-    fontSize: 20,
-    color: '#2563eb',
-    marginBottom: 15,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#f8fafc',
-    borderRadius: 5,
-    border: '1 solid #e2e8f0',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: '#1e293b',
-    marginBottom: 10,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-    paddingVertical: 3,
-  },
-  label: {
-    fontSize: 12,
-    color: '#64748b',
-    flex: 2,
-  },
-  value: {
-    fontSize: 12,
-    color: '#1e293b',
-    flex: 3,
-    fontWeight: 'bold',
-  },
-  candidateCard: {
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: '#ffffff',
-    border: '1 solid #cbd5e1',
-    borderRadius: 5,
-  },
-  candidateName: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  candidateInfo: {
-    fontSize: 10,
-    color: '#64748b',
-    marginBottom: 1,
-  },
-  positionHeader: {
-    fontSize: 16,
-    color: '#3b82f6',
-    marginTop: 15,
-    marginBottom: 8,
-    fontWeight: 'bold',
-    paddingBottom: 3,
-    borderBottom: '1 solid #dbeafe',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 30,
-    right: 30,
-    textAlign: 'center',
-    fontSize: 10,
-    color: '#94a3b8',
-    borderTop: '1 solid #e2e8f0',
-    paddingTop: 10,
-  },
-  totalVotes: {
-    fontSize: 14,
-    color: '#059669',
-    fontWeight: 'bold',
-    marginTop: 5,
-  },
-  timestamp: {
-    fontSize: 9,
-    color: '#9ca3af',
-    marginTop: 5,
-  },
-  winnerBadge: {
-    fontSize: 10,
-    color: '#059669',
-    fontWeight: 'bold',
-    marginTop: 3,
-  },
-  voteCount: {
-    fontSize: 12,
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    flexWrap: 'wrap',
-  },
-  statBox: {
-    width: '48%',
-    padding: 10,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: '#64748b',
-    marginBottom: 2,
-  },
-  statValue: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: 'bold',
-  },
-  chartPlaceholder: {
-    height: 200,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    border: '1 dashed #cbd5e1',
-    borderRadius: 5,
-    marginVertical: 20,
-  },
-  chartText: {
-    fontSize: 12,
-    color: '#94a3b8',
-  }
-});
-
-// Componente PDF para resultados
-const ResultsPDF = ({ title, stats, filteredCandidates, selectedPosition, totalVotes }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      {/* Encabezado */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Resultados Electorales</Text>
-        <Text style={styles.electionTitle}>{title}</Text>
-        <Text style={styles.subtitle}>
-          {selectedPosition === 'all' 
-            ? 'Todos los Cargos Electivos' 
-            : `Cargo: ${selectedPosition.charAt(0).toUpperCase() + selectedPosition.slice(1)}`}
-        </Text>
-        <Text style={styles.subtitle}>
-          Fecha de generación: {new Date().toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </Text>
-      </View>
-
-      {/* Estadísticas Resumen */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📊 Resumen Estadístico</Text>
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Total de Votos</Text>
-            <Text style={styles.statValue}>{stats.totalVotes}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Candidatos Totales</Text>
-            <Text style={styles.statValue}>{stats.totalCandidates}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Promedio de Votos</Text>
-            <Text style={styles.statValue}>{stats.averageVotes.toFixed(1)}</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Tasa de Participación</Text>
-            <Text style={styles.statValue}>{stats.participationRate.toFixed(1)}%</Text>
-          </View>
-        </View>
-        
-        <View style={styles.row}>
-          <Text style={styles.label}>Candidato Líder:</Text>
-          <Text style={styles.value}>{stats.leadingCandidate?.name || 'N/A'}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Votos del Líder:</Text>
-          <Text style={styles.value}>{stats.leadingCandidate?.votes || 0}</Text>
-        </View>
-      </View>
-
-      {/* Resultados por Posición */}
-      <Text style={styles.sectionTitle}>🗳️ Resultados Detallados</Text>
-      
-      {/* Agrupar por posición si se muestran todos */}
-      {selectedPosition === 'all' ? (
-        // Agrupar candidatos por posición
-        (() => {
-          const groupedByPosition = filteredCandidates.reduce((acc, candidate) => {
-            if (!acc[candidate.position]) {
-              acc[candidate.position] = [];
-            }
-            acc[candidate.position].push(candidate);
-            return acc;
-          }, {});
-
-          return Object.entries(groupedByPosition).map(([position, candidates]) => {
-            const positionTotalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
-            const sortedCandidates = [...candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
-            
-            return (
-              <View key={position} style={styles.section}>
-                <Text style={styles.positionHeader}>
-                  {position.charAt(0).toUpperCase() + position.slice(1)} 
-                  (Total votos: {positionTotalVotes})
-                </Text>
-                
-                {sortedCandidates.map((candidate, index) => (
-                  <View key={candidate.id} style={styles.candidateCard}>
-                    <Text style={styles.candidateName}>
-                      {index + 1}. {candidate.name} - #{candidate.number}
-                    </Text>
-                    <Text style={styles.voteCount}>
-                      Votos: {candidate.votes || 0}
-                    </Text>
-                    <Text style={styles.candidateInfo}>
-                      Porcentaje: {positionTotalVotes > 0 
-                        ? `${((candidate.votes || 0) / positionTotalVotes * 100).toFixed(1)}%` 
-                        : '0%'}
-                    </Text>
-                    {index === 0 && (
-                      <Text style={styles.winnerBadge}>
-                        🏆 GANADOR EN ESTA CATEGORÍA
-                      </Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            );
-          });
-        })()
-      ) : (
-        // Mostrar solo la posición seleccionada
-        <View style={styles.section}>
-          {filteredCandidates
-            .sort((a, b) => (b.votes || 0) - (a.votes || 0))
-            .map((candidate, index) => (
-              <View key={candidate.id} style={styles.candidateCard}>
-                <Text style={styles.candidateName}>
-                  {index + 1}. {candidate.name} - #{candidate.number}
-                </Text>
-                <Text style={styles.candidateInfo}>
-                  Descripción: {candidate.description || 'Sin descripción disponible'}
-                </Text>
-                <Text style={styles.voteCount}>
-                  Votos: {candidate.votes || 0}
-                </Text>
-                <Text style={styles.candidateInfo}>
-                  Porcentaje: {totalVotes > 0 
-                    ? `${((candidate.votes || 0) / totalVotes * 100).toFixed(1)}%` 
-                    : '0%'}
-                </Text>
-                {index === 0 && (
-                  <Text style={styles.winnerBadge}>
-                    🏆 GANADOR OFICIAL
-                  </Text>
-                )}
-              </View>
-            ))}
-        </View>
-      )}
-
-      {/* Información Adicional */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📈 Análisis de Resultados</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Diferencia entre 1ro y 2do:</Text>
-          <Text style={styles.value}>
-            {filteredCandidates.length > 1 
-              ? Math.abs((filteredCandidates[0]?.votes || 0) - (filteredCandidates[1]?.votes || 0))
-              : 'N/A'} votos
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Margen de victoria:</Text>
-          <Text style={styles.value}>
-            {filteredCandidates.length > 1 && totalVotes > 0
-              ? `${(((filteredCandidates[0]?.votes || 0) - (filteredCandidates[1]?.votes || 0)) / totalVotes * 100).toFixed(1)}%`
-              : 'N/A'}
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Votos válidos:</Text>
-          <Text style={styles.value}>{totalVotes}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Candidatos con votos:</Text>
-          <Text style={styles.value}>
-            {filteredCandidates.filter(c => (c.votes || 0) > 0).length} de {filteredCandidates.length}
-          </Text>
-        </View>
-      </View>
-
-      {/* Pie de página */}
-      <View style={styles.footer}>
-        <Text>________________________________________________</Text>
-        <Text>Documento generado por el Sistema Electoral I.E.F.A.G</Text>
-        <Text>Este documento es de carácter oficial y certifica los resultados electorales</Text>
-        <Text style={styles.timestamp}>
-          ID del reporte: RES-{Date.now().toString(36).toUpperCase()}
-          {' - '}
-          Filtro aplicado: {selectedPosition === 'all' ? 'Todos los cargos' : selectedPosition}
-        </Text>
-      </View>
-    </Page>
-  </Document>
+// Componente Card básico
+const Card = ({ children, className = '' }) => (
+  <div className={`bg-white rounded-xl shadow-lg border border-gray-200 ${className}`}>
+    {children}
+  </div>
 );
 
-export function VotingResults({ candidates, title = "Resultados de Votación" }) {
+export function VotingResults({ candidates = [], title = "Resultados de Votación" }) {
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [showPercentages, setShowPercentages] = useState(true);
-  const [viewMode, setViewMode] = useState('bar'); // 'bar', 'horizontal'
+  const [viewMode, setViewMode] = useState('bar');
   const [showExportOptions, setShowExportOptions] = useState(false);
 
   // Extraer posiciones únicas
   const positions = useMemo(() => {
+    if (!candidates || candidates.length === 0) return ['all'];
     const uniquePositions = [...new Set(candidates.map(c => c.position))];
     return ['all', ...uniquePositions];
   }, [candidates]);
 
   // Filtrar candidatos según posición seleccionada
   const filteredCandidates = useMemo(() => {
+    if (!candidates || candidates.length === 0) return [];
     if (selectedPosition === 'all') return candidates;
     return candidates.filter(c => c.position === selectedPosition);
   }, [candidates, selectedPosition]);
 
   // Calcular estadísticas
   const stats = useMemo(() => {
+    if (!filteredCandidates || filteredCandidates.length === 0) {
+      return {
+        totalVotes: 0,
+        totalCandidates: 0,
+        averageVotes: 0,
+        leadingCandidate: null,
+        participationRate: 0
+      };
+    }
+
     const totalVotes = filteredCandidates.reduce((sum, c) => sum + (c.votes || 0), 0);
     const candidatesWithVotes = filteredCandidates.filter(c => (c.votes || 0) > 0);
     const leadingCandidate = filteredCandidates.length > 0 
@@ -427,10 +99,16 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
 
   // Preparar datos para el gráfico
   const { chartData, chartOptions } = useMemo(() => {
+    if (!filteredCandidates || filteredCandidates.length === 0) {
+      return {
+        chartData: { labels: [], datasets: [] },
+        chartOptions: {}
+      };
+    }
+
     const sortedCandidates = [...filteredCandidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const totalVotes = stats.totalVotes;
 
-    // Paleta de colores
     const colors = {
       primary: 'rgba(59, 130, 246, 0.8)',
       secondary: 'rgba(139, 92, 246, 0.8)',
@@ -461,7 +139,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
       }
     ];
 
-    // Solo añadir dataset de porcentajes si showPercentages es true
     if (showPercentages && totalVotes > 0) {
       datasets.push({
         label: 'Porcentaje',
@@ -505,10 +182,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
         ticks: {
           font: {
             size: 11
-          },
-          callback: (value) => {
-            if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
-            return value;
           }
         },
         title: {
@@ -522,7 +195,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
       }
     };
 
-    // Añadir escala de porcentaje si es necesario
     if (showPercentages && totalVotes > 0) {
       scales.percentage = {
         position: 'right',
@@ -552,14 +224,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
       plugins: {
         legend: {
           position: 'top',
-          labels: {
-            padding: 20,
-            font: {
-              size: 12,
-              family: "'Inter', sans-serif"
-            },
-            usePointStyle: true,
-          }
         },
         tooltip: {
           backgroundColor: 'rgba(17, 24, 39, 0.95)',
@@ -569,11 +233,11 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
           cornerRadius: 8,
           displayColors: true,
           callbacks: {
-            label: (context) => {
-              const datasetLabel = context.dataset.label;
+            label: function(context) {
+              const label = context.dataset.label || '';
               const value = context.parsed.y || context.parsed.x;
               
-              if (datasetLabel === 'Porcentaje') {
+              if (label === 'Porcentaje') {
                 return `Porcentaje: ${value}%`;
               }
               
@@ -590,10 +254,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
         }
       },
       scales: scales,
-      interaction: {
-        intersect: false,
-        mode: 'index',
-      }
     };
 
     return { chartData: data, chartOptions: options };
@@ -766,6 +426,15 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
     printWindow.document.close();
   }, [title, stats, filteredCandidates]);
 
+  if (!candidates || candidates.length === 0) {
+    return (
+      <Card className="mb-8 p-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">{title}</h2>
+        <p className="text-gray-600">No hay datos de candidatos disponibles.</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="mb-8 overflow-hidden border border-gray-200 shadow-xl">
       {/* Header del Dashboard */}
@@ -787,51 +456,12 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
               Exportar Resultados
             </button>
             
-            {/* Menú de opciones de exportación */}
             {showExportOptions && (
               <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 min-w-[300px] z-50">
                 <div className="space-y-2">
                   <div className="text-sm font-semibold text-gray-700 mb-3 px-2 border-b pb-2">
                     📤 Opciones de Exportación
                   </div>
-                  
-                  <PDFDownloadLink
-                    document={
-                      <ResultsPDF 
-                        title={title}
-                        stats={stats}
-                        filteredCandidates={filteredCandidates}
-                        selectedPosition={selectedPosition}
-                        totalVotes={stats.totalVotes}
-                      />
-                    }
-                    fileName={`resultados-${selectedPosition}-${new Date().toISOString().split('T')[0]}.pdf`}
-                    className="block"
-                  >
-                    {({ loading }) => (
-                      <button
-                        disabled={loading}
-                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              Exportar a PDF
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Documento oficial con resultados
-                            </div>
-                          </div>
-                        </div>
-                        {loading ? (
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400" />
-                        )}
-                      </button>
-                    )}
-                  </PDFDownloadLink>
                   
                   <button
                     onClick={exportToJSON}
@@ -1038,34 +668,13 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
       {/* Gráfico principal */}
       <div className="p-6">
         <div className="h-96">
-          <Bar data={chartData} options={chartOptions} />
-        </div>
-        
-        {/* Leyenda personalizada */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl">
-            <h4 className="font-semibold text-blue-800 mb-2">Interpretación del Gráfico</h4>
-            <p className="text-sm text-blue-700">
-              Barras más altas indican mayor cantidad de votos. El color verde representa al líder, 
-              azul al segundo lugar, y púrpura al tercero.
-            </p>
-          </div>
-          
-          <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
-            <h4 className="font-semibold text-green-800 mb-2">Línea de Porcentajes</h4>
-            <p className="text-sm text-green-700">
-              {showPercentages 
-                ? "La línea roja muestra el porcentaje de votos que representa cada candidato."
-                : "Activa 'Porcentajes' para ver la distribución porcentual."}
-            </p>
-          </div>
-          
-          <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl">
-            <h4 className="font-semibold text-purple-800 mb-2">Interactividad</h4>
-            <p className="text-sm text-purple-700">
-              Pasa el cursor sobre las barras para ver detalles. Usa los filtros para analizar por cargo específico.
-            </p>
-          </div>
+          {filteredCandidates.length > 0 ? (
+            <Bar data={chartData} options={chartOptions} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-gray-500">
+              No hay datos para mostrar
+            </div>
+          )}
         </div>
       </div>
 
@@ -1073,118 +682,105 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
       <div className="p-6 border-t bg-gray-50">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Resultados Detallados</h3>
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Posición
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Candidato
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cargo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Votos
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Porcentaje
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Diferencia
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredCandidates
-                .sort((a, b) => (b.votes || 0) - (a.votes || 0))
-                .map((candidate, index) => {
-                  const percentage = stats.totalVotes > 0 
-                    ? ((candidate.votes || 0) / stats.totalVotes * 100).toFixed(2)
-                    : '0.00';
-                  const difference = index > 0 
-                    ? ((candidate.votes || 0) - (filteredCandidates[0].votes || 0))
-                    : 0;
-                  
-                  return (
-                    <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                          index === 0 ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                          index === 1 ? 'bg-gray-100 text-gray-800 border border-gray-300' :
-                          index === 2 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
-                          'bg-blue-100 text-blue-800 border border-blue-300'
-                        }`}>
-                          {index + 1}
-                          {index === 0 && <Medal className="w-3 h-3 ml-1" />}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        <div className="flex items-center gap-2">
-                          {candidate.name}
-                          {index === 0 && (
-                            <Award className="w-4 h-4 text-yellow-500" />
+          {filteredCandidates.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Posición
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Candidato
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cargo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Votos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Porcentaje
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredCandidates
+                  .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+                  .map((candidate, index) => {
+                    const percentage = stats.totalVotes > 0 
+                      ? ((candidate.votes || 0) / stats.totalVotes * 100).toFixed(2)
+                      : '0.00';
+                    
+                    return (
+                      <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                            index === 1 ? 'bg-gray-100 text-gray-800 border border-gray-300' :
+                            index === 2 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
+                            'bg-blue-100 text-blue-800 border border-blue-300'
+                          }`}>
+                            {index + 1}
+                            {index === 0 && <Medal className="w-3 h-3 ml-1" />}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            {candidate.name}
+                            {index === 0 && (
+                              <Award className="w-4 h-4 text-yellow-500" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                          {candidate.position}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{candidate.votes || 0}</span>
+                            <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((candidate.votes || 0) / stats.totalVotes * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-medium">{percentage}%</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {index === 0 ? (
+                            <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs font-medium rounded-full">
+                              Ganador
+                            </span>
+                          ) : index === 1 ? (
+                            <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs font-medium rounded-full">
+                              Segundo
+                            </span>
+                          ) : index === 2 ? (
+                            <span className="px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 text-xs font-medium rounded-full">
+                              Tercero
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
+                              Participante
+                            </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                        {candidate.position}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{candidate.votes || 0}</span>
-                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min((candidate.votes || 0) / stats.totalVotes * 100, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-medium">{percentage}%</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {index > 0 ? (
-                          <div className="flex items-center gap-1 text-red-600 font-medium">
-                            <TrendingDown className="w-4 h-4" />
-                            {Math.abs(difference)}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-green-600 font-medium">
-                            <TrendingUp className="w-4 h-4" />
-                            Líder
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {index === 0 ? (
-                          <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs font-medium rounded-full">
-                            Ganador
-                          </span>
-                        ) : index === 1 ? (
-                          <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs font-medium rounded-full">
-                            Segundo
-                          </span>
-                        ) : index === 2 ? (
-                          <span className="px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 text-xs font-medium rounded-full">
-                            Tercero
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
-                            Participante
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              No hay candidatos para mostrar
+            </div>
+          )}
         </div>
       </div>
 
