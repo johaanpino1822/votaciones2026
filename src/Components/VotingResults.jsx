@@ -20,14 +20,14 @@ import {
   ChevronDown, 
   Eye, 
   EyeOff,
-  FileText,
+  // FileText, // Comentado temporalmente ya que no se usa
   Printer,
   Share2,
   FileDown,
   BarChart3,
   Percent,
   Award,
-  TrendingDown,
+  // TrendingDown, // Comentado temporalmente ya que no se usa
   Medal
 } from 'lucide-react';
 
