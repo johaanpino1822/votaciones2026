@@ -798,7 +798,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-medium shadow-md"
           >
             <Download className="w-4 h-4" />
-            Exportar Ahora
+            Exportar Ahora.l
           </button>
         </div>
       </div>
