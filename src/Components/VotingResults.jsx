@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -9,10 +8,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement,
-  PointElement,
   LineElement,
-  Filler
+  PointElement
 } from 'chart.js';
 import { Card } from './ui/Card';
 import { 
@@ -38,7 +35,7 @@ import {
 // Importar react-pdf
 import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
 
-// Registrar todos los elementos de Chart.js necesarios
+// Registrar elementos necesarios de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -46,10 +43,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement,
-  PointElement,
   LineElement,
-  Filler
+  PointElement
 );
 
 // Estilos para el PDF
@@ -398,9 +393,8 @@ const ResultsPDF = ({ title, stats, filteredCandidates, selectedPosition, totalV
 export function VotingResults({ candidates, title = "Resultados de Votación" }) {
   const [selectedPosition, setSelectedPosition] = useState('all');
   const [showPercentages, setShowPercentages] = useState(true);
-  const [viewMode, setViewMode] = useState('bar'); // 'bar', 'horizontal', 'pie'
+  const [viewMode, setViewMode] = useState('bar'); // 'bar', 'horizontal'
   const [showExportOptions, setShowExportOptions] = useState(false);
-  const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf', 'json', 'csv'
 
   // Extraer posiciones únicas
   const positions = useMemo(() => {
@@ -436,61 +430,120 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
     const sortedCandidates = [...filteredCandidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const totalVotes = stats.totalVotes;
 
-    // Paleta de colores sofisticada
+    // Paleta de colores
     const colors = {
       primary: 'rgba(59, 130, 246, 0.8)',
       secondary: 'rgba(139, 92, 246, 0.8)',
       success: 'rgba(34, 197, 94, 0.8)',
       warning: 'rgba(234, 179, 8, 0.8)',
-      gradient: (ctx) => {
-        const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.9)');
-        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.2)');
-        return gradient;
-      }
     };
+
+    const datasets = [
+      {
+        label: 'Votos',
+        data: sortedCandidates.map(c => c.votes || 0),
+        backgroundColor: sortedCandidates.map((_, index) => 
+          index === 0 ? colors.success :
+          index === 1 ? colors.primary :
+          index === 2 ? colors.secondary :
+          colors.warning
+        ),
+        borderColor: sortedCandidates.map((_, index) => 
+          index === 0 ? 'rgb(34, 197, 94)' :
+          index === 1 ? 'rgb(59, 130, 246)' :
+          index === 2 ? 'rgb(139, 92, 246)' :
+          'rgb(234, 179, 8)'
+        ),
+        borderWidth: 2,
+        borderRadius: 8,
+        barPercentage: viewMode === 'horizontal' ? 0.6 : 0.8,
+        categoryPercentage: 0.9,
+      }
+    ];
+
+    // Solo añadir dataset de porcentajes si showPercentages es true
+    if (showPercentages && totalVotes > 0) {
+      datasets.push({
+        label: 'Porcentaje',
+        data: sortedCandidates.map(c => ((c.votes || 0) / totalVotes * 100).toFixed(1)),
+        type: 'line',
+        yAxisID: 'percentage',
+        borderColor: 'rgba(239, 68, 68, 0.8)',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.3,
+      });
+    }
 
     const data = {
       labels: sortedCandidates.map(c => c.name),
-      datasets: [
-        {
-          label: 'Votos',
-          data: sortedCandidates.map(c => c.votes || 0),
-          backgroundColor: viewMode === 'bar' 
-            ? (ctx) => colors.gradient(ctx)
-            : sortedCandidates.map((_, index) => 
-                index === 0 ? colors.success :
-                index === 1 ? colors.primary :
-                index === 2 ? colors.secondary :
-                colors.warning
-              ),
-          borderColor: sortedCandidates.map((_, index) => 
-            index === 0 ? 'rgb(34, 197, 94)' :
-            index === 1 ? 'rgb(59, 130, 246)' :
-            index === 2 ? 'rgb(139, 92, 246)' :
-            'rgb(234, 179, 8)'
-          ),
-          borderWidth: 2,
-          borderRadius: 8,
-          borderSkipped: false,
-          barPercentage: viewMode === 'horizontal' ? 0.6 : 0.8,
-          categoryPercentage: 0.9,
-        },
-        ...(showPercentages && totalVotes > 0 ? [{
-          label: 'Porcentaje',
-          data: sortedCandidates.map(c => ((c.votes || 0) / totalVotes * 100).toFixed(1)),
-          type: 'line',
-          yAxisID: 'percentage',
-          borderColor: 'rgba(239, 68, 68, 0.8)',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          borderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          fill: true,
-          tension: 0.3,
-        }] : [])
-      ]
+      datasets: datasets
     };
+
+    const scales = {
+      x: {
+        grid: {
+          color: 'rgba(229, 231, 235, 0.3)',
+          drawBorder: false,
+        },
+        ticks: {
+          font: {
+            size: 11
+          },
+          maxRotation: viewMode === 'bar' ? 45 : 0
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(229, 231, 235, 0.3)',
+          drawBorder: false,
+        },
+        ticks: {
+          font: {
+            size: 11
+          },
+          callback: (value) => {
+            if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+            return value;
+          }
+        },
+        title: {
+          display: true,
+          text: 'Número de Votos',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      }
+    };
+
+    // Añadir escala de porcentaje si es necesario
+    if (showPercentages && totalVotes > 0) {
+      scales.percentage = {
+        position: 'right',
+        beginAtZero: true,
+        max: 100,
+        grid: {
+          drawOnChartArea: false,
+        },
+        ticks: {
+          callback: (value) => `${value}%`
+        },
+        title: {
+          display: true,
+          text: 'Porcentaje',
+          font: {
+            size: 12,
+            weight: 'bold'
+          }
+        }
+      };
+    }
 
     const options = {
       responsive: true,
@@ -508,9 +561,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
             usePointStyle: true,
           }
         },
-        title: {
-          display: false
-        },
         tooltip: {
           backgroundColor: 'rgba(17, 24, 39, 0.95)',
           titleColor: '#f3f4f6',
@@ -520,89 +570,29 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
           displayColors: true,
           callbacks: {
             label: (context) => {
-              if (context.datasetIndex === 0) {
-                const votes = context.raw;
-                const percentage = totalVotes > 0 
-                  ? ((votes / totalVotes) * 100).toFixed(1)
-                  : '0.0';
-                return [
-                  `Votos: ${votes}`,
-                  `Porcentaje: ${percentage}%`
-                ];
+              const datasetLabel = context.dataset.label;
+              const value = context.parsed.y || context.parsed.x;
+              
+              if (datasetLabel === 'Porcentaje') {
+                return `Porcentaje: ${value}%`;
               }
-              return `Porcentaje: ${context.raw}%`;
+              
+              const votes = value;
+              const percentage = totalVotes > 0 
+                ? ((votes / totalVotes) * 100).toFixed(1)
+                : '0.0';
+              return [
+                `Votos: ${votes}`,
+                `Porcentaje: ${percentage}%`
+              ];
             }
           }
         }
       },
-      scales: {
-        x: {
-          grid: {
-            color: 'rgba(229, 231, 235, 0.3)',
-            drawBorder: false,
-          },
-          ticks: {
-            font: {
-              size: 11
-            },
-            maxRotation: viewMode === 'bar' ? 45 : 0
-          }
-        },
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(229, 231, 235, 0.3)',
-            drawBorder: false,
-          },
-          ticks: {
-            font: {
-              size: 11
-            },
-            callback: (value) => {
-              if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
-              return value;
-            }
-          },
-          title: {
-            display: true,
-            text: 'Número de Votos',
-            font: {
-              size: 12,
-              weight: 'bold'
-            }
-          }
-        },
-        ...(showPercentages && totalVotes > 0 ? {
-          percentage: {
-            position: 'right',
-            beginAtZero: true,
-            max: 100,
-            grid: {
-              drawOnChartArea: false,
-            },
-            ticks: {
-              callback: (value) => `${value}%`
-            },
-            title: {
-              display: true,
-              text: 'Porcentaje',
-              font: {
-                size: 12,
-                weight: 'bold'
-              }
-            }
-          }
-        } : {})
-      },
+      scales: scales,
       interaction: {
         intersect: false,
         mode: 'index',
-      },
-      animations: {
-        tension: {
-          duration: 1000,
-          easing: 'easeOutQuart'
-        }
       }
     };
 
@@ -672,7 +662,6 @@ export function VotingResults({ candidates, title = "Resultados de Votación" })
         url: window.location.href
       });
     } else {
-      // Copiar al portapapeles como alternativa
       navigator.clipboard.writeText(window.location.href).then(() => {
         alert('Enlace copiado al portapapeles');
       });
