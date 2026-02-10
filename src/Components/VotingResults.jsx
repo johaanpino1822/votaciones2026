@@ -9,7 +9,8 @@ import {
   Tooltip,
   Legend,
   LineElement,
-  PointElement
+  PointElement,
+  LineController
 } from 'chart.js';
 import { 
   TrendingUp, 
@@ -20,18 +21,16 @@ import {
   ChevronDown, 
   Eye, 
   EyeOff,
-  // FileText, // Comentado temporalmente ya que no se usa
   Printer,
   Share2,
   FileDown,
   BarChart3,
   Percent,
   Award,
-  // TrendingDown, // Comentado temporalmente ya que no se usa
   Medal
 } from 'lucide-react';
 
-// Registrar elementos de Chart.js
+// Registrar TODOS los elementos necesarios de Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -40,7 +39,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   LineElement,
-  PointElement
+  PointElement,
+  LineController  // ¡ESTO ES LO QUE FALTABA!
 );
 
 // Componente Card básico
@@ -139,12 +139,14 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       }
     ];
 
+    // Crear un segundo dataset separado para el gráfico de línea
     if (showPercentages && totalVotes > 0) {
+      // IMPORTANTE: Usar un ID diferente para el eje Y de porcentajes
       datasets.push({
         label: 'Porcentaje',
         data: sortedCandidates.map(c => ((c.votes || 0) / totalVotes * 100).toFixed(1)),
         type: 'line',
-        yAxisID: 'percentage',
+        yAxisID: 'y1', // Usar un ID diferente para el eje Y
         borderColor: 'rgba(239, 68, 68, 0.8)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         borderWidth: 2,
@@ -174,6 +176,9 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         }
       },
       y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
         beginAtZero: true,
         grid: {
           color: 'rgba(229, 231, 235, 0.3)',
@@ -196,7 +201,9 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     };
 
     if (showPercentages && totalVotes > 0) {
-      scales.percentage = {
+      scales.y1 = {
+        type: 'linear',
+        display: true,
         position: 'right',
         beginAtZero: true,
         max: 100,
