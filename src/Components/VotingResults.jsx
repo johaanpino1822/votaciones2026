@@ -40,7 +40,7 @@ ChartJS.register(
   Legend,
   LineElement,
   PointElement,
-  LineController  // ¡ESTO ES LO QUE FALTABA!
+  LineController
 );
 
 // Componente Card básico
@@ -109,11 +109,12 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     const sortedCandidates = [...filteredCandidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     const totalVotes = stats.totalVotes;
 
+    // Paleta de colores actualizada con degradado azul-verde
     const colors = {
-      primary: 'rgba(59, 130, 246, 0.8)',
-      secondary: 'rgba(139, 92, 246, 0.8)',
-      success: 'rgba(34, 197, 94, 0.8)',
-      warning: 'rgba(234, 179, 8, 0.8)',
+      primary: 'rgba(30, 58, 138, 0.8)', // azul-800
+      secondary: 'rgba(21, 128, 61, 0.8)', // emerald-700
+      success: 'rgba(6, 95, 70, 0.8)', // emerald-800
+      warning: 'rgba(15, 118, 110, 0.8)', // teal-700
     };
 
     const datasets = [
@@ -127,10 +128,10 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
           colors.warning
         ),
         borderColor: sortedCandidates.map((_, index) => 
-          index === 0 ? 'rgb(34, 197, 94)' :
-          index === 1 ? 'rgb(59, 130, 246)' :
-          index === 2 ? 'rgb(139, 92, 246)' :
-          'rgb(234, 179, 8)'
+          index === 0 ? 'rgb(6, 95, 70)' :
+          index === 1 ? 'rgb(30, 58, 138)' :
+          index === 2 ? 'rgb(21, 128, 61)' :
+          'rgb(15, 118, 110)'
         ),
         borderWidth: 2,
         borderRadius: 8,
@@ -141,14 +142,13 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
 
     // Crear un segundo dataset separado para el gráfico de línea
     if (showPercentages && totalVotes > 0) {
-      // IMPORTANTE: Usar un ID diferente para el eje Y de porcentajes
       datasets.push({
         label: 'Porcentaje',
         data: sortedCandidates.map(c => ((c.votes || 0) / totalVotes * 100).toFixed(1)),
         type: 'line',
-        yAxisID: 'y1', // Usar un ID diferente para el eje Y
-        borderColor: 'rgba(239, 68, 68, 0.8)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        yAxisID: 'y1',
+        borderColor: 'rgba(5, 150, 105, 0.8)', // emerald-500
+        backgroundColor: 'rgba(5, 150, 105, 0.1)',
         borderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
@@ -341,14 +341,41 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
           <title>${title} - I.E.F.A.G</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+            h1 { 
+              background: linear-gradient(to right, #1e3a8a, #065f46);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              border-bottom: 2px solid #1e3a8a; 
+              padding-bottom: 10px; 
+            }
             .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0; }
-            .stat-card { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+            .stat-card { 
+              background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
+              padding: 15px; 
+              border-radius: 8px; 
+              border: 1px solid #bfdbfe;
+            }
             table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th { background: #f1f5f9; padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; }
+            th { 
+              background: linear-gradient(to right, #dbeafe, #d1fae5);
+              padding: 12px; 
+              text-align: left; 
+              border-bottom: 2px solid #1e3a8a; 
+              color: #1e3a8a;
+            }
             td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-            .winner { background: #f0fdf4; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px; }
+            .winner { 
+              background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%);
+              border-left: 4px solid #065f46;
+            }
+            .footer { 
+              margin-top: 40px; 
+              padding-top: 20px; 
+              border-top: 2px solid #1e3a8a; 
+              text-align: center; 
+              color: #64748b; 
+              font-size: 12px; 
+            }
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
@@ -442,11 +469,11 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
   return (
     <Card className="mb-8 overflow-hidden border border-gray-200 shadow-xl">
       {/* Header del Dashboard */}
-      <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+      <div className="p-6 bg-gradient-to-r from-blue-800 to-emerald-800 border-b">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-            <p className="text-gray-600 mt-1">
+            <h2 className="text-2xl font-bold text-white">{title}</h2>
+            <p className="text-blue-100 mt-1">
               Visualización interactiva de resultados electorales
             </p>
           </div>
@@ -454,7 +481,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
           <div className="flex items-center gap-3 relative">
             <button
               onClick={() => setShowExportOptions(!showExportOptions)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-medium shadow-md"
+              className="flex items-center gap-2 px-4 py-2 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-all font-medium shadow-lg hover:shadow-xl"
             >
               <Download className="w-4 h-4" />
               Exportar Resultados
@@ -463,16 +490,16 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             {showExportOptions && (
               <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 min-w-[300px] z-50">
                 <div className="space-y-2">
-                  <div className="text-sm font-semibold text-gray-700 mb-3 px-2 border-b pb-2">
+                  <div className="text-sm font-semibold text-blue-800 mb-3 px-2 border-b pb-2">
                     📤 Opciones de Exportación
                   </div>
                   
                   <button
                     onClick={exportToJSON}
-                    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileDown className="w-5 h-5 text-green-600" />
+                      <FileDown className="w-5 h-5 text-emerald-600" />
                       <div>
                         <div className="font-medium text-gray-900">
                           Exportar a JSON
@@ -487,10 +514,10 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                   
                   <button
                     onClick={exportToCSV}
-                    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <BarChart3 className="w-5 h-5 text-purple-600" />
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
                       <div>
                         <div className="font-medium text-gray-900">
                           Exportar a CSV
@@ -505,10 +532,10 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                   
                   <button
                     onClick={shareResults}
-                    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Share2 className="w-5 h-5 text-orange-600" />
+                      <Share2 className="w-5 h-5 text-blue-700" />
                       <div>
                         <div className="font-medium text-gray-900">
                           Compartir resultados
@@ -523,7 +550,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                   
                   <button
                     onClick={printResults}
-                    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between p-3 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <Printer className="w-5 h-5 text-gray-600" />
@@ -547,8 +574,8 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         {/* Filtros y controles */}
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Filtrar por cargo:</span>
+            <Filter className="w-4 h-4 text-blue-200" />
+            <span className="text-sm font-medium text-blue-100">Filtrar por cargo:</span>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -558,8 +585,8 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                 onClick={() => setSelectedPosition(pos)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   selectedPosition === pos
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    ? 'bg-white text-blue-800 shadow-md'
+                    : 'bg-blue-900/50 text-blue-100 hover:bg-blue-900/70'
                 }`}
               >
                 {pos === 'all' ? 'Todos los cargos' : pos.charAt(0).toUpperCase() + pos.slice(1)}
@@ -570,59 +597,59 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       </div>
 
       {/* Estadísticas destacadas */}
-      <div className="p-6 border-b bg-gray-50">
+      <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-emerald-50">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-blue-200 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg">
+                <Users className="w-5 h-5 text-blue-800" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total de Votos</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalVotes}</p>
+                <p className="text-sm text-blue-800 font-medium">Total de Votos</p>
+                <p className="text-2xl font-bold text-blue-800">{stats.totalVotes}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-gradient-to-r from-emerald-100 to-emerald-200 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-emerald-800" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Tasa de Participación</p>
-                <p className="text-2xl font-bold text-gray-800">
+                <p className="text-sm text-emerald-800 font-medium">Tasa de Participación</p>
+                <p className="text-2xl font-bold text-emerald-800">
                   {stats.participationRate.toFixed(1)}%
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-blue-300 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Trophy className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-gradient-to-r from-blue-200 to-emerald-200 rounded-lg">
+                <Trophy className="w-5 h-5 text-blue-800" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Candidato Líder</p>
-                <p className="text-lg font-bold text-gray-800 truncate">
+                <p className="text-sm text-blue-800 font-medium">Candidato Líder</p>
+                <p className="text-lg font-bold text-blue-800 truncate">
                   {stats.leadingCandidate?.name || 'N/A'}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-emerald-700">
                   {stats.leadingCandidate?.votes || 0} votos
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-emerald-300 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Percent className="w-5 h-5 text-orange-600" />
+              <div className="p-2 bg-gradient-to-r from-blue-100 to-emerald-100 rounded-lg">
+                <Percent className="w-5 h-5 text-emerald-800" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Promedio de Votos</p>
-                <p className="text-2xl font-bold text-gray-800">
+                <p className="text-sm text-emerald-800 font-medium">Promedio de Votos</p>
+                <p className="text-2xl font-bold text-emerald-800">
                   {stats.averageVotes.toFixed(1)}
                 </p>
               </div>
@@ -635,7 +662,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       <div className="p-4 border-b bg-white">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">Vista:</span>
+            <span className="text-sm font-medium text-blue-800">Vista:</span>
             <div className="flex gap-2">
               {['bar', 'horizontal'].map(mode => (
                 <button
@@ -643,8 +670,8 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                   onClick={() => setViewMode(mode)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     viewMode === mode
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-gradient-to-r from-blue-600 to-emerald-600 text-white shadow-md'
+                      : 'text-blue-800 hover:bg-blue-50 border border-blue-200'
                   }`}
                 >
                   {mode === 'bar' ? 'Barras Verticales' : 'Barras Horizontales'}
@@ -658,8 +685,8 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               onClick={() => setShowPercentages(!showPercentages)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 showPercentages
-                  ? 'bg-green-100 text-green-700 border border-green-200'
-                  : 'bg-gray-100 text-gray-700 border border-gray-200'
+                  ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200'
+                  : 'bg-gradient-to-r from-blue-50 to-emerald-50 text-blue-800 border border-blue-200'
               }`}
             >
               {showPercentages ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -683,29 +710,29 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       </div>
 
       {/* Tabla de resultados detallada */}
-      <div className="p-6 border-t bg-gray-50">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Resultados Detallados</h3>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <div className="p-6 border-t bg-gradient-to-r from-blue-50 to-emerald-50">
+        <h3 className="text-lg font-semibold text-blue-800 mb-4">Resultados Detallados</h3>
+        <div className="overflow-x-auto rounded-lg border border-blue-200 bg-white shadow-sm">
           {filteredCandidates.length > 0 ? (
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-emerald-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Posición
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Candidato
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Cargo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Votos
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Porcentaje
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                     Estado
                   </th>
                 </tr>
@@ -719,19 +746,19 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                       : '0.00';
                     
                     return (
-                      <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={candidate.id} className="hover:bg-blue-50/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                            index === 0 ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                            index === 1 ? 'bg-gray-100 text-gray-800 border border-gray-300' :
-                            index === 2 ? 'bg-orange-100 text-orange-800 border border-orange-300' :
-                            'bg-blue-100 text-blue-800 border border-blue-300'
+                            index === 0 ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300' :
+                            index === 1 ? 'bg-gradient-to-r from-blue-50 to-emerald-50 text-blue-800 border border-blue-300' :
+                            index === 2 ? 'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border border-emerald-300' :
+                            'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300'
                           }`}>
                             {index + 1}
                             {index === 0 && <Medal className="w-3 h-3 ml-1" />}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-blue-900">
                           <div className="flex items-center gap-2">
                             {candidate.name}
                             {index === 0 && (
@@ -739,38 +766,38 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-emerald-700 font-medium">
                           {candidate.position}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold">{candidate.votes || 0}</span>
-                            <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <span className="font-semibold text-blue-800">{candidate.votes || 0}</span>
+                            <div className="w-32 h-2 bg-blue-100 rounded-full overflow-hidden">
                               <div 
-                                className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                className="h-full bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.min((candidate.votes || 0) / stats.totalVotes * 100, 100)}%` }}
                               />
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="font-medium">{percentage}%</span>
+                          <span className="font-medium text-emerald-800">{percentage}%</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {index === 0 ? (
-                            <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs font-medium rounded-full">
-                              Ganador
+                            <span className="px-3 py-1 bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 text-xs font-medium rounded-full border border-emerald-200">
+                              🏆 Ganador
                             </span>
                           ) : index === 1 ? (
-                            <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs font-medium rounded-full">
-                              Segundo
+                            <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
+                              🥈 Segundo
                             </span>
                           ) : index === 2 ? (
-                            <span className="px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 text-xs font-medium rounded-full">
-                              Tercero
+                            <span className="px-3 py-1 bg-gradient-to-r from-emerald-50 to-teal-100 text-emerald-800 text-xs font-medium rounded-full border border-emerald-200">
+                              🥉 Tercero
                             </span>
                           ) : (
-                            <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
+                            <span className="px-3 py-1 bg-gradient-to-r from-blue-50 to-emerald-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                               Participante
                             </span>
                           )}
@@ -789,17 +816,17 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       </div>
 
       {/* Información adicional sobre exportación */}
-      <div className="p-6 border-t bg-gradient-to-r from-emerald-50 to-teal-50">
+      <div className="p-6 border-t bg-gradient-to-r from-blue-800 to-emerald-800">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="font-semibold text-gray-800 mb-2">¿Necesitas los resultados completos?</h4>
-            <p className="text-sm text-gray-600">
+            <h4 className="font-semibold text-white mb-2">¿Necesitas los resultados completos?</h4>
+            <p className="text-sm text-blue-100">
               Exporta los datos en múltiples formatos para análisis, reportes o presentaciones.
             </p>
           </div>
           <button
             onClick={() => setShowExportOptions(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-medium shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-white text-blue-800 rounded-lg hover:bg-blue-50 transition-all font-medium shadow-lg hover:shadow-xl"
           >
             <Download className="w-4 h-4" />
             Exportar Ahora

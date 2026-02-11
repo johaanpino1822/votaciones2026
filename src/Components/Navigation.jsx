@@ -56,7 +56,7 @@ export function Navigation() {
   const navItems = getNavItems();
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo y marca */}
@@ -66,7 +66,7 @@ export function Navigation() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center"
+                className="w-8 h-8 bg-gradient-to-br from-blue-800 to-indigo-900 rounded-lg flex items-center justify-center"
               >
                 <School className="w-5 h-5 text-white" />
               </motion.div>
@@ -83,10 +83,10 @@ export function Navigation() {
               <div className="hidden md:flex items-center ml-4 pl-4 border-l border-gray-200">
                 <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium ${
                   isVotingOpen 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                     : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
-                  <div className={`w-2 h-2 rounded-full ${isVotingOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                  <div className={`w-2 h-2 rounded-full ${isVotingOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                   <span>{isVotingOpen ? 'Votación Abierta' : 'Votación Cerrada'}</span>
                 </div>
               </div>
@@ -105,7 +105,7 @@ export function Navigation() {
                   to={item.path}
                   className={`relative flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                     isActive
-                      ? 'text-blue-600 bg-blue-50'
+                      ? 'text-emerald-700 bg-emerald-50'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
@@ -114,7 +114,7 @@ export function Navigation() {
                   {isActive && (
                     <motion.div
                       layoutId="navbar-indicator"
-                      className="absolute inset-0 bg-blue-50 rounded-lg -z-10"
+                      className="absolute inset-0 bg-emerald-50 rounded-lg -z-10"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -134,12 +134,12 @@ export function Navigation() {
                   </p>
                   <div className="flex items-center space-x-1">
                     {user.isAdmin ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-800/10 text-blue-800">
                         <Shield className="w-3 h-3 mr-1" />
                         Administrador
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                         <Users className="w-3 h-3 mr-1" />
                         Votante Activo
                       </span>
@@ -150,8 +150,8 @@ export function Navigation() {
                 {/* Avatar del usuario */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   user.isAdmin 
-                    ? 'bg-red-100 text-red-600' 
-                    : 'bg-blue-100 text-blue-600'
+                    ? 'bg-blue-800/10 text-blue-700' 
+                    : 'bg-emerald-100 text-emerald-700'
                 }`}>
                   {user.isAdmin ? (
                     <Shield className="w-4 h-4" />
@@ -176,7 +176,7 @@ export function Navigation() {
               // Botón para login si no hay usuario
               <Link
                 to="/login"
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-md transition-all duration-200"
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-800 to-emerald-800 text-white rounded-lg hover:shadow-md transition-all duration-200"
               >
                 <Vote className="w-4 h-4" />
                 <span className="text-sm font-medium">Acceder al Sistema</span>
@@ -187,7 +187,7 @@ export function Navigation() {
 
         {/* Navegación móvil */}
         {navItems.length > 1 && (
-          <div className="md:hidden border-t border-gray-100 pt-3 pb-2">
+          <div className="md:hidden border-t border-gray-200 pt-3 pb-2">
             <div className="flex justify-around">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path;
@@ -199,14 +199,14 @@ export function Navigation() {
                     to={item.path}
                     className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                       isActive
-                        ? 'text-blue-600 bg-blue-50'
+                        ? 'text-emerald-700 bg-emerald-50'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <Icon size={20} />
                     <span>{item.label}</span>
                     {isActive && (
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                     )}
                   </Link>
                 );

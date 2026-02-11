@@ -209,51 +209,78 @@ export function AdminPanel() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* Header con estadísticas */}
+      {/* Header de administración */}
+      <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-8 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+              <Shield className="w-10 h-10" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Panel Administrativo I.E.F.A.G</h1>
+              <p className="text-blue-100 text-sm mt-2">Gestión completa del sistema de votación electoral</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-medium">Votación Actual</div>
+            <div className={`text-2xl font-bold ${isVotingOpen ? 'text-emerald-300' : 'text-red-300'}`}>
+              {isVotingOpen ? 'ABIERTA' : 'CERRADA'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-600 mb-1">Total Candidatos</p>
-              <p className="text-3xl font-bold text-blue-700">{stats.totalCandidates}</p>
-              <p className="text-xs text-blue-500 mt-1">{stats.activeCandidates} activos</p>
+              <p className="text-sm font-medium text-blue-800 mb-1">Total Candidatos</p>
+              <p className="text-3xl font-bold text-blue-800">{stats.totalCandidates}</p>
+              <p className="text-xs text-blue-600 mt-1">{stats.activeCandidates} activos</p>
             </div>
-            <Users className="w-10 h-10 text-blue-400 opacity-70" />
+            <div className="p-3 bg-blue-800/10 rounded-lg">
+              <Users className="w-8 h-8 text-blue-800" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-600 mb-1">Votos Totales</p>
-              <p className="text-3xl font-bold text-green-700">{stats.totalVotes}</p>
-              <p className="text-xs text-green-500 mt-1">{stats.averageVotes.toFixed(1)} promedio</p>
+              <p className="text-sm font-medium text-emerald-800 mb-1">Votos Totales</p>
+              <p className="text-3xl font-bold text-emerald-800">{stats.totalVotes}</p>
+              <p className="text-xs text-emerald-600 mt-1">{stats.averageVotes.toFixed(1)} promedio</p>
             </div>
-            <BarChart3 className="w-10 h-10 text-green-400 opacity-70" />
+            <div className="p-3 bg-emerald-100 rounded-lg">
+              <BarChart3 className="w-8 h-8 text-emerald-800" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100">
+        <Card className="p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600 mb-1">Cargos Diferentes</p>
-              <p className="text-3xl font-bold text-purple-700">{stats.positions}</p>
-              <p className="text-xs text-purple-500 mt-1">Distribución por posición</p>
+              <p className="text-sm font-medium text-blue-800 mb-1">Cargos Diferentes</p>
+              <p className="text-3xl font-bold text-blue-800">{stats.positions}</p>
+              <p className="text-xs text-blue-600 mt-1">Distribución por posición</p>
             </div>
-            <Shield className="w-10 h-10 text-purple-400 opacity-70" />
+            <div className="p-3 bg-blue-800/10 rounded-lg">
+              <Shield className="w-8 h-8 text-blue-800" />
+            </div>
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100">
+        <Card className="p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600 mb-1">Estado Votación</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">Estado Votación</p>
               <div className="flex items-center gap-2">
-                <span className={`text-2xl font-bold ${isVotingOpen ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-2xl font-bold ${isVotingOpen ? 'text-emerald-800' : 'text-red-600'}`}>
                   {isVotingOpen ? 'Abierta' : 'Cerrada'}
                 </span>
                 {isVotingOpen ? 
-                  <CheckCircle className="w-5 h-5 text-green-500" /> : 
+                  <CheckCircle className="w-5 h-5 text-emerald-600" /> : 
                   <XCircle className="w-5 h-5 text-red-500" />
                 }
               </div>
@@ -261,12 +288,14 @@ export function AdminPanel() {
                 variant={isVotingOpen ? "danger" : "success"}
                 onClick={toggleVoting}
                 size="sm"
-                className="mt-2 w-full"
+                className="mt-2 w-full bg-gradient-to-r from-blue-800 to-emerald-800 hover:from-blue-900 hover:to-emerald-900"
               >
-                {isVotingOpen ? 'Cerrar Votación' : 'Abrir Votación'}
+                {isVotingOpen ? '🔒 Cerrar Votación' : '🔓 Abrir Votación'}
               </Button>
             </div>
-            <Vote className="w-10 h-10 text-orange-400 opacity-70" />
+            <div className="p-3 bg-emerald-100 rounded-lg">
+              <Vote className="w-8 h-8 text-emerald-800" />
+            </div>
           </div>
         </Card>
       </div>
@@ -275,9 +304,10 @@ export function AdminPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulario de candidato */}
         <div className="lg:col-span-2">
-          <Card className="p-6">
+          <Card className="p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-blue-800" />
                 {isEditing ? 'Editar Candidato' : 'Agregar Nuevo Candidato'}
               </h2>
               {isEditing && (
@@ -311,7 +341,7 @@ export function AdminPanel() {
                       type="text"
                       value={newCandidate.name}
                       onChange={(e) => setNewCandidate({ ...newCandidate, name: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder="Juan Pérez Rodríguez"
                       required
                     />
@@ -325,7 +355,7 @@ export function AdminPanel() {
                       type="number"
                       value={newCandidate.number}
                       onChange={(e) => setNewCandidate({ ...newCandidate, number: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder="1"
                       min="1"
                       required
@@ -339,7 +369,7 @@ export function AdminPanel() {
                     <select
                       value={newCandidate.position}
                       onChange={(e) => setNewCandidate({ ...newCandidate, position: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       required
                     >
                       <option value="personeria">Personería</option>
@@ -356,7 +386,7 @@ export function AdminPanel() {
                     <textarea
                       value={newCandidate.description}
                       onChange={(e) => setNewCandidate({ ...newCandidate, description: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder="Breve descripción del candidato..."
                       rows="3"
                     />
@@ -366,8 +396,8 @@ export function AdminPanel() {
                 {/* Foto del candidato */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      <ImageIcon className="inline w-4 h-4 mr-2" />
+                    <label className="block text-sm font-medium mb-2 text-gray-700 flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-blue-800" />
                       URL de la Foto del Candidato
                     </label>
                     <div className="flex gap-2">
@@ -375,7 +405,7 @@ export function AdminPanel() {
                         type="url"
                         value={newCandidate.photoUrl}
                         onChange={(e) => setNewCandidate({ ...newCandidate, photoUrl: e.target.value })}
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                         placeholder="https://ejemplo.com/foto-candidato.jpg"
                       />
                       <button
@@ -392,7 +422,7 @@ export function AdminPanel() {
                   </div>
 
                   {/* Botones de ejemplo rápido */}
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
                     <p className="text-sm font-medium text-blue-800 mb-2">
                       ¿Necesitas una imagen?
                     </p>
@@ -417,7 +447,7 @@ export function AdminPanel() {
                             photoUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop'
                           });
                         }}
-                        className="text-sm bg-white text-pink-700 px-3 py-2 rounded border border-pink-200 hover:bg-pink-50 transition"
+                        className="text-sm bg-white text-blue-700 px-3 py-2 rounded border border-blue-200 hover:bg-blue-50 transition"
                       >
                         Ejemplo Femenino
                       </button>
@@ -433,8 +463,8 @@ export function AdminPanel() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                          <p className="text-sm font-medium mb-3 text-gray-700">Vista previa:</p>
+                        <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
+                          <p className="text-sm font-medium text-blue-800 mb-3">Vista previa:</p>
                           <div className="flex items-center gap-4">
                             <div className="relative">
                               <img
@@ -447,7 +477,7 @@ export function AdminPanel() {
                                   toast.error('No se pudo cargar la imagen');
                                 }}
                               />
-                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center">
                                 <ImageIcon className="w-3 h-3 text-white" />
                               </div>
                             </div>
@@ -457,7 +487,7 @@ export function AdminPanel() {
                                 Esta será la foto que verán los votantes
                               </p>
                               {isValidUrl(newCandidate.photoUrl) && (
-                                <p className="text-xs text-green-600 mt-2">
+                                <p className="text-xs text-emerald-600 mt-2">
                                   ✓ URL válida detectada
                                 </p>
                               )}
@@ -477,7 +507,7 @@ export function AdminPanel() {
                   </div>
                   <Button
                     type="submit"
-                    className="px-8"
+                    className="px-8 bg-gradient-to-r from-blue-800 to-emerald-800 hover:from-blue-900 hover:to-emerald-900 text-white"
                     variant={isEditing ? "warning" : "primary"}
                   >
                     <Plus className="w-5 h-5 mr-2" />
@@ -489,9 +519,12 @@ export function AdminPanel() {
           </Card>
 
           {/* Panel de importación/exportación */}
-          <Card className="mt-6 p-6">
+          <Card className="mt-6 p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-800">Gestión de Datos</h3>
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-800" />
+                Gestión de Datos
+              </h3>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -520,15 +553,15 @@ export function AdminPanel() {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <AlertCircle className="w-5 h-5 text-yellow-500 inline mr-2" />
-                    <span className="text-sm font-medium text-yellow-700">
+                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
+                    <AlertCircle className="w-5 h-5 text-blue-800 inline mr-2" />
+                    <span className="text-sm font-medium text-blue-800">
                       Importación de datos
                     </span>
                     <textarea
                       value={importData}
                       onChange={(e) => setImportData(e.target.value)}
-                      className="w-full mt-3 p-3 border border-gray-300 rounded-lg text-sm font-mono"
+                      className="w-full mt-3 p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder='[{"name": "Candidato", "number": 1, "position": "personeria", "photoUrl": "..."}]'
                       rows="4"
                     />
@@ -543,6 +576,7 @@ export function AdminPanel() {
                       <Button
                         onClick={handleImportData}
                         size="sm"
+                        className="bg-gradient-to-r from-blue-800 to-emerald-800 text-white"
                       >
                         Procesar Importación
                       </Button>
@@ -557,33 +591,36 @@ export function AdminPanel() {
         {/* Panel de filtros y estadísticas */}
         <div className="space-y-6">
           {/* Filtros de búsqueda */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Filtros y Búsqueda</h3>
+          <Card className="p-6 border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <Filter className="w-5 h-5 text-blue-800" />
+              Filtros y Búsqueda
+            </h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  <Search className="inline w-4 h-4 mr-2" />
+                <label className="block text-sm font-medium mb-2 text-gray-700 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-blue-800" />
                   Buscar candidato
                 </label>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   placeholder="Nombre, número o cargo..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  <Filter className="inline w-4 h-4 mr-2" />
+                <label className="block text-sm font-medium mb-2 text-gray-700 flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-blue-800" />
                   Filtrar por cargo
                 </label>
                 <select
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 >
                   {positions.map(pos => (
                     <option key={pos} value={pos}>
@@ -600,7 +637,7 @@ export function AdminPanel() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 >
                   <option value="name">Nombre (A-Z)</option>
                   <option value="number">Número</option>
@@ -631,31 +668,34 @@ export function AdminPanel() {
           </Card>
 
           {/* Estadísticas rápidas */}
-          <Card className="p-6 bg-gradient-to-br from-gray-50 to-gray-100">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Resumen Rápido</h3>
+          <Card className="p-6 border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-800" />
+              Resumen Rápido
+            </h3>
             
             <div className="space-y-3">
               {stats.leadingCandidate && (
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-yellow-600" />
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg border border-blue-200">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-800 to-emerald-800 rounded-lg flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-700">Candidato líder</p>
+                    <p className="text-sm font-medium text-blue-800">Candidato líder</p>
                     <p className="font-bold text-gray-900">{stats.leadingCandidate.name}</p>
-                    <p className="text-xs text-gray-500">{stats.leadingCandidate.votes || 0} votos</p>
+                    <p className="text-xs text-emerald-600">{stats.leadingCandidate.votes || 0} votos</p>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-500">Candidatos activos</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.activeCandidates}</p>
+                <div className="p-3 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-800 font-medium">Candidatos activos</p>
+                  <p className="text-2xl font-bold text-blue-800">{stats.activeCandidates}</p>
                 </div>
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-500">Votos promedio</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.averageVotes.toFixed(1)}</p>
+                <div className="p-3 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-800 font-medium">Votos promedio</p>
+                  <p className="text-2xl font-bold text-blue-800">{stats.averageVotes.toFixed(1)}</p>
                 </div>
               </div>
             </div>
@@ -666,7 +706,8 @@ export function AdminPanel() {
       {/* Lista de candidatos */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-800" />
             Lista de Candidatos ({filteredCandidates.length})
           </h2>
           <div className="text-sm text-gray-500">
@@ -675,7 +716,7 @@ export function AdminPanel() {
         </div>
 
         {filteredCandidates.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-12 text-center border border-gray-200 shadow-sm">
             <div className="max-w-md mx-auto">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">
@@ -699,12 +740,12 @@ export function AdminPanel() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   layout
                 >
-                  <Card className={`overflow-hidden h-full transition-all hover:shadow-lg ${
+                  <Card className={`overflow-hidden h-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${
                     candidate.inactive ? 'opacity-70' : ''
                   }`}>
                     {/* Encabezado con número y estado */}
                     <div className="relative">
-                      <div className="h-48 bg-gradient-to-r from-blue-100 to-purple-100 relative overflow-hidden">
+                      <div className="h-48 bg-gradient-to-r from-blue-50 to-emerald-50 relative overflow-hidden">
                         <img
                           src={candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=300&fit=crop'}
                           alt={candidate.name}
@@ -715,7 +756,7 @@ export function AdminPanel() {
                           }}
                         />
                         <div className="absolute top-4 right-4">
-                          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                          <span className="bg-gradient-to-r from-blue-800 to-emerald-800 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
                             #{candidate.number}
                           </span>
                         </div>
@@ -733,15 +774,15 @@ export function AdminPanel() {
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 truncate">
+                          <h3 className="text-lg font-bold text-gray-900 truncate">
                             {candidate.name}
                           </h3>
-                          <p className="text-sm text-gray-600 capitalize">
+                          <p className="text-sm text-blue-800 font-medium capitalize">
                             {candidate.position}
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-xl font-bold text-emerald-800">
                             {candidate.votes || 0}
                           </div>
                           <div className="text-xs text-gray-500">votos</div>
@@ -777,8 +818,8 @@ export function AdminPanel() {
                       {/* Información adicional */}
                       {candidate.photoUrl && (
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 truncate">
-                            <ImageIcon className="inline w-3 h-3 mr-1" />
+                          <p className="text-xs text-blue-600 truncate flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3" />
                             {candidate.photoUrl.substring(0, 50)}...
                           </p>
                         </div>
