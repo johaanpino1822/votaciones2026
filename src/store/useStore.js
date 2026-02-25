@@ -106,47 +106,66 @@ export const useStore = create(
           createdAt: new Date().toISOString()
         };
         
-        set((state) => ({
-          candidates: [...state.candidates, newCandidate]
-        }));
-        
-        // Actualizar estadísticas de posiciones
-        updatePositionsStats();
+        set((state) => {
+          const newCandidates = [...state.candidates, newCandidate];
+          
+          // Actualizar estadísticas después de agregar
+          setTimeout(() => updatePositionsStats(), 0);
+          
+          return {
+            candidates: newCandidates
+          };
+        });
         
         return newCandidate;
       },
       
       // Editar candidato (admin)
       updateCandidate: (candidateId, candidateData) => {
-        set((state) => ({
-          candidates: state.candidates.map((c) =>
+        set((state) => {
+          const newCandidates = state.candidates.map((c) =>
             c.id === candidateId ? { ...c, ...candidateData } : c
-          )
-        }));
+          );
+          
+          setTimeout(() => updatePositionsStats(), 0);
+          
+          return {
+            candidates: newCandidates
+          };
+        });
         
-        updatePositionsStats();
         return true;
       },
       
       // Eliminar candidato (admin)
       deleteCandidate: (candidateId) => {
-        set((state) => ({
-          candidates: state.candidates.filter(c => c.id !== candidateId)
-        }));
+        set((state) => {
+          const newCandidates = state.candidates.filter(c => c.id !== candidateId);
+          
+          setTimeout(() => updatePositionsStats(), 0);
+          
+          return {
+            candidates: newCandidates
+          };
+        });
         
-        updatePositionsStats();
         return true;
       },
       
       // Activar/desactivar candidato (admin)
       toggleCandidateActive: (candidateId) => {
-        set((state) => ({
-          candidates: state.candidates.map((c) =>
+        set((state) => {
+          const newCandidates = state.candidates.map((c) =>
             c.id === candidateId ? { ...c, active: !c.active } : c
-          )
-        }));
+          );
+          
+          setTimeout(() => updatePositionsStats(), 0);
+          
+          return {
+            candidates: newCandidates
+          };
+        });
         
-        updatePositionsStats();
         return true;
       },
       
@@ -200,14 +219,13 @@ export const useStore = create(
           const updatedHourlyActivity = [...state.votingStats.hourlyActivity];
           if (hourIndex >= 0 && hourIndex < updatedHourlyActivity.length) {
             updatedHourlyActivity[hourIndex].votes += 1;
-            updatedHourlyActivity[hourIndex].percentage = Math.round(
-              (updatedHourlyActivity[hourIndex].votes / totalVotes) * 100
-            );
+            updatedHourlyActivity[hourIndex].percentage = totalVotes > 0 ? 
+              Math.round((updatedHourlyActivity[hourIndex].votes / totalVotes) * 100) : 0;
           }
           
           // Registrar en historial
           const voteRecord = {
-            voterId: user.username,
+            voterId: user.username || `Votante-${state.currentVoterNumber}`,
             candidateId,
             position,
             timestamp: new Date().toISOString(),
@@ -221,8 +239,8 @@ export const useStore = create(
               ...state.votingStats,
               totalVotes,
               uniqueVoters,
-              votingRate: `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%`,
-              participationRate: `${Math.round(((state.currentVoterNumber - 1) / 100) * 100)}%`, // Ejemplo: 100 votantes máx
+              votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
+              participationRate: uniqueVoters > 0 ? `${Math.round((uniqueVoters / 100) * 100)}%` : '0%', // Ejemplo: 100 votantes máx
               positions,
               hourlyActivity: updatedHourlyActivity
             },
@@ -272,7 +290,7 @@ export const useStore = create(
           votingHistory: []
         });
         
-        localStorage.clear();
+        localStorage.removeItem('votingUser');
         return true;
       },
       
@@ -346,7 +364,7 @@ export const useStore = create(
         return {
           totalVotes,
           uniqueVoters: state.currentVoterNumber - 1,
-          votingRate: `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%`,
+          votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
           candidateCount: candidates.filter(c => c.active !== false).length,
           positions: ['personeria', 'contraloria'].map(pos => ({
             name: pos,
@@ -357,8 +375,10 @@ export const useStore = create(
       }
     }),
     {
-      name: 'voting-storage',
+      name: 'voting-storage', // nombre en localStorage
+      getStorage: () => localStorage, // usar localStorage
       partialize: (state) => ({
+        // Solo persistir estos campos
         candidates: state.candidates,
         currentVoterNumber: state.currentVoterNumber,
         votingStats: state.votingStats,
@@ -366,6 +386,7 @@ export const useStore = create(
         systemPasswords: state.systemPasswords,
         isVotingOpen: state.isVotingOpen,
         timeRemaining: state.timeRemaining
+        // user e isAuthenticated NO se persisten por seguridad
       })
     }
   )
@@ -376,10 +397,11 @@ function updatePositionsStats() {
   const state = useStore.getState();
   const candidates = state.candidates;
   
+  const totalVotes = candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
+  
   const positions = ['personeria', 'contraloria'].map(pos => {
     const positionCandidates = candidates.filter(c => c.position === pos && c.active !== false);
     const positionVotes = positionCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-    const totalVotes = candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
     
     return {
       name: pos,
@@ -389,23 +411,35 @@ function updatePositionsStats() {
     };
   });
   
-  useStore.setState(state => ({
+  // Actualizar también la actividad por hora (mantener datos existentes)
+  const hourlyActivity = state.votingStats?.hourlyActivity || [
+    { time: '09:00-10:00', votes: 0, percentage: 0 },
+    { time: '10:00-11:00', votes: 0, percentage: 0 },
+    { time: '11:00-12:00', votes: 0, percentage: 0 }
+  ];
+  
+  useStore.setState({
     votingStats: {
       ...state.votingStats,
+      totalVotes,
+      uniqueVoters: state.currentVoterNumber - 1,
+      votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
       positions,
-      totalVotes: candidates.reduce((sum, candidate) => sum + candidate.votes, 0),
-      uniqueVoters: state.currentVoterNumber - 1
+      hourlyActivity
     }
-  }));
+  });
 }
 
 // Si quieres inicializar con algunos datos vacíos (opcional)
 if (typeof window !== 'undefined') {
+  // Solo para depuración
   const store = useStore.getState();
   
-  // Si no hay candidatos y queremos ver el formato esperado
+  // Si no hay candidatos, mostrar mensaje informativo
   if (store.candidates.length === 0) {
     console.log('✅ Store inicializado sin candidatos. Puedes agregarlos desde el panel de administración.');
+  } else {
+    console.log(`📊 Store cargado con ${store.candidates.length} candidatos desde localStorage`);
   }
   
   // Verificar contraseñas por defecto (solo en desarrollo)

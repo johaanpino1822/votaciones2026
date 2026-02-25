@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Users, Vote, Image as ImageIcon, Shield } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
@@ -11,10 +11,27 @@ export function AdminPanel() {
     name: '',
     number: '',
     position: 'personeria',
-    photoUrl: '',  // <-- Este campo SÍ existe
+    photoUrl: '',
   });
 
-  const { candidates, addCandidate, isVotingOpen, toggleVoting } = useStore();
+  const { 
+    candidates, 
+    addCandidate, 
+    isVotingOpen, 
+    toggleVoting,
+    loadFromStorage,  // Nueva función para cargar datos
+    saveToStorage     // Nueva función para guardar datos
+  } = useStore();
+
+  // Cargar datos de localStorage al iniciar
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  // Guardar datos en localStorage cuando cambien
+  useEffect(() => {
+    saveToStorage();
+  }, [candidates, isVotingOpen, saveToStorage]);
 
   const handleAddCandidate = (e) => {
     e.preventDefault();
@@ -24,10 +41,16 @@ export function AdminPanel() {
       return;
     }
 
+    // Verificar si el número ya existe
+    const numeroExistente = candidates.some(c => c.number === parseInt(newCandidate.number));
+    if (numeroExistente) {
+      toast.error('Ya existe un candidato con este número');
+      return;
+    }
+
     addCandidate({
       ...newCandidate,
       number: parseInt(newCandidate.number),
-      // photoUrl ya está incluido aquí
     });
     
     toast.success('Candidato agregado exitosamente');
@@ -35,22 +58,104 @@ export function AdminPanel() {
       name: '',
       number: '',
       position: 'personeria',
-      photoUrl: '',  // <-- Se limpia el campo
+      photoUrl: '',
     });
+  };
+
+  const handleImportFromJSON = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.candidates && Array.isArray(data.candidates)) {
+            // Importar candidatos (evitando duplicados)
+            data.candidates.forEach(candidate => {
+              if (!candidates.some(c => c.number === candidate.number)) {
+                addCandidate(candidate);
+              }
+            });
+            toast.success('Datos importados exitosamente');
+          }
+        } catch (error) {
+          toast.error('Error al importar el archivo');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const handleExportToJSON = () => {
+    const data = {
+      candidates,
+      isVotingOpen,
+      exportDate: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `candidatos-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Datos exportados exitosamente');
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm('¿Estás seguro de eliminar TODOS los candidatos? Esta acción no se puede deshacer.')) {
+      localStorage.removeItem('votingApp_candidates');
+      localStorage.removeItem('votingApp_isVotingOpen');
+      window.location.reload(); // Recargar para resetear el estado
+    }
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Header de administración */}
       <div className="mb-8 bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-            <Shield className="w-8 h-8" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+              <Shield className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Panel Administrativo</h1>
+              <p className="text-blue-100 text-sm mt-1">Gestión completa del sistema de votación</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Panel Administrativo</h1>
-            <p className="text-blue-100 text-sm mt-1">Gestión completa del sistema de votación</p>
+          
+          {/* Botones de importar/exportar */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportToJSON}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <span>📤 Exportar</span>
+            </button>
+            <button
+              onClick={handleImportFromJSON}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <span>📥 Importar</span>
+            </button>
+            <button
+              onClick={handleClearAll}
+              className="px-3 py-2 bg-red-500/80 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <span>🗑️ Limpiar</span>
+            </button>
           </div>
+        </div>
+        
+        {/* Mensaje de persistencia */}
+        <div className="mt-4 bg-blue-900/30 p-3 rounded-lg text-sm text-blue-100 flex items-center gap-2">
+          <span>💾</span>
+          <span>Los datos se guardan automáticamente en tu navegador. Puedes abrir esta página en cualquier dispositivo y los datos persistirán.</span>
         </div>
       </div>
 
@@ -219,6 +324,10 @@ export function AdminPanel() {
                     src={candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=300&fit=crop'}
                     alt={candidate.name}
                     className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/400x300?text=Sin+Foto';
+                    }}
                   />
                   <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-800 to-emerald-800 text-white px-3 py-1 rounded-bl-lg text-sm font-medium">
                     #{candidate.number}
@@ -247,8 +356,7 @@ export function AdminPanel() {
                   {/* Mostrar la URL de la foto si existe */}
                   {candidate.photoUrl && (
                     <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg border border-blue-200">
-                      <p className="text-xs font-medium text-blue-800 mb-1">Foto URL:</p>
-                      <p className="text-xs text-blue-600 truncate">{candidate.photoUrl}</p>
+                      <p className="text-xs font-medium text-blue-800 mb-1 truncate">📸 {candidate.photoUrl}</p>
                     </div>
                   )}
                 </div>
