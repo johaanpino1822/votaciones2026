@@ -12,7 +12,7 @@ import { AdminPanel } from './pages/AdminPanel';
 import { VotingSystem } from './Components/VotingSystem';
 import { Login } from './Components/Login';
 import { Navigation } from './Components/Navigation';
-import { LoadingSpinner } from './Components/LoadingSpinner'; // Podrías crear este componente
+
 
 // Componente para protección de rutas
 function ProtectedRoute({ children, adminOnly = false }) {

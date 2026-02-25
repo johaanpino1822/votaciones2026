@@ -25,7 +25,7 @@ import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../Components/ui/Buttom';
 import { Card } from '../Components/ui/Card';
-import toast from 'react-hot-';
+import toast from 'react-hot-toast';
 
 export function AdminPanel() {
   const [newCandidate, setNewCandidate] = useState({
