@@ -1,16 +1,31 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import toast from 'react-hot-toast';
+
+// ============================================
+// CONFIGURACIÓN DE MOCKAPI.IO (¡REEMPLAZA CON TU URL!)
+// ============================================
+const API_BASE_URL = 'https://699f414278dda56d396ccd07.mockapi.io/api/v1';
+const CANDIDATES_ENDPOINT = `${API_BASE_URL}/candidates`;
 
 export const useStore = create(
   persist(
     (set, get) => ({
-      // Estado
+      // ============================================
+      // ESTADO INICIAL
+      // ============================================
       user: null,
       isAuthenticated: false,
-      candidates: [], // Vacío inicialmente - se llenará desde el admin
+      candidates: [],
       isVotingOpen: true,
       currentVoterNumber: 1,
-      
+      isLoading: false,
+      syncError: null,
+      cloudSync: {
+        lastSync: null,
+        isSyncing: false,
+      },
+
       // Estadísticas
       votingStats: {
         totalVotes: 0,
@@ -33,420 +48,393 @@ export const useStore = create(
           week: { up: true, change: '0%' }
         }
       },
-      
-      // Tiempo
+
+      // Tiempo restante
       timeRemaining: {
         hours: 2,
         minutes: 30,
         seconds: 0
       },
-      
-      // Historial de votación (para admin)
+
+      // Historial de votación
       votingHistory: [],
-      
+
       // Contraseñas del sistema
       systemPasswords: {
-        jury: 'mesa2025',      // Contraseña única para jurados
-        admin: 'admin2025'     // Contraseña de administrador
+        jury: 'mesa2025',
+        admin: 'admin2025'
       },
-      
-      // Funciones
-      login: (userData) => {
-        // userData debe contener: username, isJury, isAdmin, hasVoted, isTemp
-        set({ 
-          user: userData,
-          isAuthenticated: true 
-        });
-        
-        // Si no es temporal, guardar en localStorage
-        if (!userData.isTemp) {
-          localStorage.setItem('votingUser', JSON.stringify(userData));
+
+      // ============================================
+      // FUNCIONES DE SINCRONIZACIÓN CON LA NUBE
+      // ============================================
+
+      /**
+       * Carga todos los candidatos desde MockAPI.io
+       * Se llama al iniciar la aplicación
+       */
+      loadCandidatesFromCloud: async () => {
+        set({ isLoading: true, syncError: null });
+
+        try {
+          console.log('📡 Cargando candidatos desde:', CANDIDATES_ENDPOINT);
+          const response = await fetch(CANDIDATES_ENDPOINT);
+
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+          }
+
+          const cloudCandidates = await response.json();
+          console.log('✅ Candidatos recibidos:', cloudCandidates.length);
+
+          // Actualizar estado local con los datos de la nube
+          set({
+            candidates: cloudCandidates,
+            isLoading: false,
+            syncError: null,
+            cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
+          });
+
+          // Recalcular estadísticas
+          get().recalculateStats();
+          toast.success('Datos sincronizados desde la nube');
+        } catch (error) {
+          console.error('❌ Error cargando candidatos:', error);
+          set({
+            isLoading: false,
+            syncError: 'No se pudo conectar con la nube. Usando datos locales.'
+          });
+          toast.error('Error de conexión. Modo offline.');
         }
-        
-        return true;
       },
-      
-      logout: () => {
-        const currentUser = get().user;
-        
-        // Si era un votante temporal, incrementar contador
-        if (currentUser?.isTemp) {
-          set(state => ({ 
-            currentVoterNumber: state.currentVoterNumber + 1 
-          }));
-        }
-        
-        set({ 
-          user: null, 
-          isAuthenticated: false 
-        });
-        
-        localStorage.removeItem('votingUser');
-      },
-      
-      // Verificar credenciales de jurado
-      verifyJuryPassword: (password) => {
-        const systemPasswords = get().systemPasswords;
-        return password === systemPasswords.jury;
-      },
-      
-      // Verificar credenciales de admin
-      verifyAdminCredentials: (username, password) => {
-        const systemPasswords = get().systemPasswords;
-        return username === 'admin' && password === systemPasswords.admin;
-      },
-      
-      // Agregar candidato (admin)
-      addCandidate: (candidateData) => {
+
+      /**
+       * Guarda un nuevo candidato en MockAPI.io y actualiza el estado local
+       */
+      addCandidate: async (candidateData) => {
+        set({ cloudSync: { isSyncing: true, lastSync: get().cloudSync.lastSync } });
+
         const newCandidate = {
           ...candidateData,
-          id: Math.random().toString(36).substr(2, 9),
+          id: Date.now().toString(), // ID temporal
           votes: 0,
           active: true,
           createdAt: new Date().toISOString()
         };
-        
-        set((state) => {
-          const newCandidates = [...state.candidates, newCandidate];
-          
-          // Actualizar estadísticas después de agregar
-          setTimeout(() => updatePositionsStats(), 0);
-          
-          return {
-            candidates: newCandidates
-          };
-        });
-        
-        return newCandidate;
-      },
-      
-      // Editar candidato (admin)
-      updateCandidate: (candidateId, candidateData) => {
-        set((state) => {
-          const newCandidates = state.candidates.map((c) =>
-            c.id === candidateId ? { ...c, ...candidateData } : c
-          );
-          
-          setTimeout(() => updatePositionsStats(), 0);
-          
-          return {
-            candidates: newCandidates
-          };
-        });
-        
-        return true;
-      },
-      
-      // Eliminar candidato (admin)
-      deleteCandidate: (candidateId) => {
-        set((state) => {
-          const newCandidates = state.candidates.filter(c => c.id !== candidateId);
-          
-          setTimeout(() => updatePositionsStats(), 0);
-          
-          return {
-            candidates: newCandidates
-          };
-        });
-        
-        return true;
-      },
-      
-      // Activar/desactivar candidato (admin)
-      toggleCandidateActive: (candidateId) => {
-        set((state) => {
-          const newCandidates = state.candidates.map((c) =>
-            c.id === candidateId ? { ...c, active: !c.active } : c
-          );
-          
-          setTimeout(() => updatePositionsStats(), 0);
-          
-          return {
-            candidates: newCandidates
-          };
-        });
-        
-        return true;
-      },
-      
-      // Registrar voto
-      castVote: (candidateId, position) => {
-        const state = get();
-        const user = state.user;
-        
-        if (!user) {
-          console.error('No hay usuario activo');
-          return false;
-        }
-        
-        if (user.hasVoted[position]) {
-          console.error(`Ya votaste en ${position}`);
-          return false;
-        }
-        
-        set((state) => {
-          // Actualizar votos del candidato
-          const updatedCandidates = state.candidates.map((c) =>
-            c.id === candidateId ? { ...c, votes: c.votes + 1 } : c
-          );
-          
-          // Actualizar estado del usuario
-          const updatedUser = {
-            ...user,
-            hasVoted: { ...user.hasVoted, [position]: true }
-          };
-          
-          // Calcular nuevas estadísticas
-          const totalVotes = updatedCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-          const uniqueVoters = state.currentVoterNumber - 1; // Votantes únicos = contador - 1
-          
-          // Calcular porcentajes por posición
-          const positions = ['personeria', 'contraloria'].map(pos => {
-            const positionCandidates = updatedCandidates.filter(c => c.position === pos && c.active !== false);
-            const positionVotes = positionCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
+
+        try {
+          console.log('📤 Enviando candidato a:', CANDIDATES_ENDPOINT);
+          const response = await fetch(CANDIDATES_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newCandidate)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+          }
+
+          const savedCandidate = await response.json();
+          console.log('✅ Candidato guardado en nube:', savedCandidate);
+
+          // Actualizar estado local con el candidato devuelto por la API (con su ID real)
+          set((state) => {
+            // Filtrar el candidato temporal si existe
+            const filteredCandidates = state.candidates.filter(c => c.id !== newCandidate.id);
+            const updatedCandidates = [...filteredCandidates, savedCandidate];
+
             return {
-              name: pos,
-              votes: positionVotes,
-              percentage: totalVotes > 0 ? Math.round((positionVotes / totalVotes) * 100) : 0,
-              candidates: positionCandidates.length
+              candidates: updatedCandidates,
+              cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
             };
           });
-          
-          // Actualizar actividad por hora (simplificado)
-          const currentHour = new Date().getHours();
-          const hourIndex = Math.floor((currentHour - 9) / 1); // Desde 9:00
-          
-          const updatedHourlyActivity = [...state.votingStats.hourlyActivity];
-          if (hourIndex >= 0 && hourIndex < updatedHourlyActivity.length) {
-            updatedHourlyActivity[hourIndex].votes += 1;
-            updatedHourlyActivity[hourIndex].percentage = totalVotes > 0 ? 
-              Math.round((updatedHourlyActivity[hourIndex].votes / totalVotes) * 100) : 0;
+
+          get().recalculateStats();
+          toast.success('✅ Candidato guardado en la nube');
+          return savedCandidate;
+
+        } catch (error) {
+          console.error('❌ Error guardando candidato:', error);
+          // Fallback: guardar localmente si falla la nube
+          set((state) => ({
+            candidates: [...state.candidates, newCandidate],
+            cloudSync: { ...state.cloudSync, isSyncing: false },
+            syncError: 'Error de conexión. Guardado localmente.'
+          }));
+          get().recalculateStats();
+          toast.error('⚠️ Guardado localmente (sin conexión)');
+          return newCandidate;
+        }
+      },
+
+      /**
+       * Actualiza un candidato existente en MockAPI.io y localmente
+       */
+      updateCandidate: async (candidateId, candidateData) => {
+        try {
+          console.log(`📝 Actualizando candidato ${candidateId} en:`, `${CANDIDATES_ENDPOINT}/${candidateId}`);
+          const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(candidateData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
           }
-          
-          // Registrar en historial
-          const voteRecord = {
-            voterId: user.username || `Votante-${state.currentVoterNumber}`,
-            candidateId,
-            position,
-            timestamp: new Date().toISOString(),
-            voterNumber: state.currentVoterNumber
-          };
-          
+
+          const updatedCandidate = await response.json();
+
+          set((state) => ({
+            candidates: state.candidates.map(c =>
+              c.id === candidateId ? updatedCandidate : c
+            ),
+            cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
+          }));
+
+          get().recalculateStats();
+          toast.success('✅ Candidato actualizado');
+          return true;
+
+        } catch (error) {
+          console.error('❌ Error actualizando candidato:', error);
+          toast.error('Error al actualizar en la nube');
+          return false;
+        }
+      },
+
+      /**
+       * Elimina un candidato de MockAPI.io y localmente
+       */
+      deleteCandidate: async (candidateId) => {
+        try {
+          console.log(`🗑️ Eliminando candidato ${candidateId} de:`, `${CANDIDATES_ENDPOINT}/${candidateId}`);
+          const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+          }
+
+          set((state) => ({
+            candidates: state.candidates.filter(c => c.id !== candidateId),
+            cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
+          }));
+
+          get().recalculateStats();
+          toast.success('✅ Candidato eliminado');
+          return true;
+
+        } catch (error) {
+          console.error('❌ Error eliminando candidato:', error);
+          toast.error('Error al eliminar de la nube');
+          return false;
+        }
+      },
+
+      /**
+       * Registra un voto, actualizando en MockAPI.io y localmente
+       */
+      castVote: async (candidateId, position) => {
+        const state = get();
+        const user = state.user;
+
+        // Validaciones
+        if (!user) {
+          toast.error('Debes iniciar sesión');
+          return false;
+        }
+
+        if (user.hasVoted?.[position]) {
+          toast.error(`Ya votaste en ${position}`);
+          return false;
+        }
+
+        const candidate = state.candidates.find(c => c.id === candidateId);
+        if (!candidate) {
+          toast.error('Candidato no encontrado');
+          return false;
+        }
+
+        const newVoteCount = (candidate.votes || 0) + 1;
+
+        try {
+          // Actualizar votos en MockAPI
+          const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...candidate, votes: newVoteCount })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+          }
+
+          const updatedCandidate = await response.json();
+
+          // Actualizar estado local
+          set((state) => {
+            const updatedCandidates = state.candidates.map(c =>
+              c.id === candidateId ? updatedCandidate : c
+            );
+
+            const updatedUser = {
+              ...user,
+              hasVoted: { ...(user.hasVoted || {}), [position]: true }
+            };
+
+            const voteRecord = {
+              id: Date.now().toString(),
+              voterId: user.username || `Votante-${state.currentVoterNumber}`,
+              candidateId,
+              candidateName: candidate.name,
+              position,
+              timestamp: new Date().toISOString(),
+              voterNumber: state.currentVoterNumber
+            };
+
+            return {
+              candidates: updatedCandidates,
+              user: updatedUser,
+              votingHistory: [...state.votingHistory, voteRecord],
+              currentVoterNumber: state.currentVoterNumber + 1
+            };
+          });
+
+          // Recalcular stats después del voto
+          get().recalculateStats();
+          get().updateCloudSyncTime();
+
+          toast.success('✅ Voto registrado en la nube');
+          return true;
+
+        } catch (error) {
+          console.error('❌ Error registrando voto:', error);
+          toast.error('Error al registrar voto en la nube');
+          return false;
+        }
+      },
+
+      // ============================================
+      // FUNCIONES AUXILIARES
+      // ============================================
+
+      /**
+       * Recalcula todas las estadísticas basadas en los candidatos actuales
+       */
+      recalculateStats: () => {
+        const state = get();
+        const candidates = state.candidates;
+        const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+        const activeCandidates = candidates.filter(c => c.active !== false);
+
+        const positions = ['personeria', 'contraloria'].map(pos => {
+          const posCandidates = candidates.filter(c => c.position === pos && c.active !== false);
+          const posVotes = posCandidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+
           return {
-            candidates: updatedCandidates,
-            user: updatedUser,
-            votingStats: {
-              ...state.votingStats,
-              totalVotes,
-              uniqueVoters,
-              votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
-              participationRate: uniqueVoters > 0 ? `${Math.round((uniqueVoters / 100) * 100)}%` : '0%', // Ejemplo: 100 votantes máx
-              positions,
-              hourlyActivity: updatedHourlyActivity
-            },
-            votingHistory: [...state.votingHistory, voteRecord]
+            name: pos,
+            votes: posVotes,
+            percentage: totalVotes > 0 ? Math.round((posVotes / totalVotes) * 100) : 0,
+            candidates: posCandidates.length
           };
         });
-        
-        return true;
-      },
-      
-      // Toggle estado de votación (admin)
-      toggleVoting: () => set((state) => ({ 
-        isVotingOpen: !state.isVotingOpen 
-      })),
-      
-      // Resetear toda la votación (admin) - CUIDADO: Esto borra todo
-      resetVoting: () => {
+
         set({
-          candidates: get().candidates.map(candidate => ({
-            ...candidate,
-            votes: 0
-          })),
-          currentVoterNumber: 1,
-          user: null,
-          isAuthenticated: false,
-          votingStats: {
-            totalVotes: 0,
-            uniqueVoters: 0,
-            votingRate: '0%',
-            participationRate: '0%',
-            remainingTime: '2h 30m',
-            positions: [
-              { name: 'personeria', votes: 0, percentage: 0, candidates: 0 },
-              { name: 'contraloria', votes: 0, percentage: 0, candidates: 0 }
-            ],
-            hourlyActivity: [
-              { time: '09:00-10:00', votes: 0, percentage: 0 },
-              { time: '10:00-11:00', votes: 0, percentage: 0 },
-              { time: '11:00-12:00', votes: 0, percentage: 0 }
-            ],
-            trends: {
-              hour: { up: false, change: '0%' },
-              day: { up: false, change: '0%' },
-              week: { up: false, change: '0%' }
-            }
-          },
-          votingHistory: []
-        });
-        
-        localStorage.removeItem('votingUser');
-        return true;
-      },
-      
-      // Resetear solo votos (admin) - Mantiene candidatos
-      resetVotesOnly: () => {
-        set((state) => ({
-          candidates: state.candidates.map(candidate => ({
-            ...candidate,
-            votes: 0
-          })),
-          currentVoterNumber: 1,
-          user: null,
-          isAuthenticated: false,
           votingStats: {
             ...state.votingStats,
-            totalVotes: 0,
-            uniqueVoters: 0,
-            votingRate: '0%',
-            participationRate: '0%',
-            positions: state.votingStats.positions.map(pos => ({
-              ...pos,
-              votes: 0,
-              percentage: 0
-            })),
-            hourlyActivity: state.votingStats.hourlyActivity.map(hour => ({
-              ...hour,
-              votes: 0,
-              percentage: 0
-            }))
-          },
-          votingHistory: []
+            totalVotes,
+            uniqueVoters: state.currentVoterNumber - 1,
+            votingRate: totalVotes > 0
+              ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%`
+              : '0%',
+            positions
+          }
+        });
+      },
+
+      /**
+       * Actualiza la marca de última sincronización
+       */
+      updateCloudSyncTime: () => {
+        set((state) => ({
+          cloudSync: { ...state.cloudSync, lastSync: new Date().toISOString() }
         }));
-        
-        localStorage.removeItem('votingUser');
+      },
+
+      /**
+       * Fuerza una sincronización manual con la nube
+       */
+      forceSync: async () => {
+        await get().loadCandidatesFromCloud();
+      },
+
+      // ============================================
+      // FUNCIONES DE AUTENTICACIÓN Y CONTROL
+      // ============================================
+
+      login: (userData) => {
+        set({
+          user: userData,
+          isAuthenticated: true
+        });
         return true;
       },
-      
-      // Actualizar tiempo restante
-      updateTimeRemaining: (newTime) => set({ timeRemaining: newTime }),
-      
-      // Cambiar contraseñas del sistema (admin)
-      updateSystemPasswords: (newPasswords) => {
-        set(state => ({
-          systemPasswords: { ...state.systemPasswords, ...newPasswords }
-        }));
-        return true;
+
+      logout: () => {
+        set({
+          user: null,
+          isAuthenticated: false
+        });
       },
-      
-      // Obtener candidatos activos por posición
+
+      toggleVoting: () => set((state) => ({
+        isVotingOpen: !state.isVotingOpen
+      })),
+
+      verifyJuryPassword: (password) => {
+        return password === get().systemPasswords.jury;
+      },
+
+      verifyAdminCredentials: (username, password) => {
+        return username === 'admin' && password === get().systemPasswords.admin;
+      },
+
+      // ============================================
+      // FUNCIONES DE CONSULTA
+      // ============================================
+
       getCandidatesByPosition: (position) => {
-        const candidates = get().candidates;
-        return candidates.filter(c => 
+        return get().candidates.filter(c =>
           c.position === position && c.active !== false
         );
       },
-      
-      // Obtener top candidatos
+
       getTopCandidates: (limit = 5) => {
-        const candidates = get().candidates;
-        return [...candidates]
-          .sort((a, b) => b.votes - a.votes)
+        return [...get().candidates]
+          .filter(c => c.active !== false)
+          .sort((a, b) => (b.votes || 0) - (a.votes || 0))
           .slice(0, limit);
       },
-      
-      // Obtener estadísticas en tiempo real
-      getLiveStats: () => {
-        const state = get();
-        const candidates = state.candidates;
-        const totalVotes = candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-        
-        return {
-          totalVotes,
-          uniqueVoters: state.currentVoterNumber - 1,
-          votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
-          candidateCount: candidates.filter(c => c.active !== false).length,
-          positions: ['personeria', 'contraloria'].map(pos => ({
-            name: pos,
-            candidates: candidates.filter(c => c.position === pos && c.active !== false).length,
-            votes: candidates.filter(c => c.position === pos).reduce((sum, c) => sum + c.votes, 0)
-          }))
-        };
+
+      resetVoting: async () => {
+        // Implementa lógica para resetear votos si es necesario
+        toast.success('Función de reseteo no implementada en este ejemplo');
       }
     }),
     {
-      name: 'voting-storage', // nombre en localStorage
-      getStorage: () => localStorage, // usar localStorage
+      name: 'voting-app-storage',
+      getStorage: () => localStorage,
       partialize: (state) => ({
-        // Solo persistir estos campos
+        // Solo persistir localmente como respaldo
         candidates: state.candidates,
         currentVoterNumber: state.currentVoterNumber,
-        votingStats: state.votingStats,
         votingHistory: state.votingHistory,
-        systemPasswords: state.systemPasswords,
         isVotingOpen: state.isVotingOpen,
-        timeRemaining: state.timeRemaining
-        // user e isAuthenticated NO se persisten por seguridad
+        timeRemaining: state.timeRemaining,
+        systemPasswords: state.systemPasswords
       })
     }
   )
 );
-
-// Función helper para actualizar estadísticas de posiciones
-function updatePositionsStats() {
-  const state = useStore.getState();
-  const candidates = state.candidates;
-  
-  const totalVotes = candidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-  
-  const positions = ['personeria', 'contraloria'].map(pos => {
-    const positionCandidates = candidates.filter(c => c.position === pos && c.active !== false);
-    const positionVotes = positionCandidates.reduce((sum, candidate) => sum + candidate.votes, 0);
-    
-    return {
-      name: pos,
-      votes: positionVotes,
-      percentage: totalVotes > 0 ? Math.round((positionVotes / totalVotes) * 100) : 0,
-      candidates: positionCandidates.length
-    };
-  });
-  
-  // Actualizar también la actividad por hora (mantener datos existentes)
-  const hourlyActivity = state.votingStats?.hourlyActivity || [
-    { time: '09:00-10:00', votes: 0, percentage: 0 },
-    { time: '10:00-11:00', votes: 0, percentage: 0 },
-    { time: '11:00-12:00', votes: 0, percentage: 0 }
-  ];
-  
-  useStore.setState({
-    votingStats: {
-      ...state.votingStats,
-      totalVotes,
-      uniqueVoters: state.currentVoterNumber - 1,
-      votingRate: totalVotes > 0 ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%` : '0%',
-      positions,
-      hourlyActivity
-    }
-  });
-}
-
-// Si quieres inicializar con algunos datos vacíos (opcional)
-if (typeof window !== 'undefined') {
-  // Solo para depuración
-  const store = useStore.getState();
-  
-  // Si no hay candidatos, mostrar mensaje informativo
-  if (store.candidates.length === 0) {
-    console.log('✅ Store inicializado sin candidatos. Puedes agregarlos desde el panel de administración.');
-  } else {
-    console.log(`📊 Store cargado con ${store.candidates.length} candidatos desde localStorage`);
-  }
-  
-  // Verificar contraseñas por defecto (solo en desarrollo)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔐 Contraseñas por defecto:');
-    console.log('- Jurado:', store.systemPasswords.jury);
-    console.log('- Admin:', store.systemPasswords.admin);
-    console.log('⚠️ Cambia estas contraseñas en producción');
-  }
-}

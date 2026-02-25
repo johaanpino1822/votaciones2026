@@ -17,13 +17,15 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Trophy
+  Trophy,
+  RefreshCw,
+  Cloud
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../Components/ui/Buttom';
 import { Card } from '../Components/ui/Card';
-import toast from 'react-hot-toast';
+import toast from 'react-hot-';
 
 export function AdminPanel() {
   const [newCandidate, setNewCandidate] = useState({
@@ -42,8 +44,19 @@ export function AdminPanel() {
   const [isImporting, setIsImporting] = useState(false);
   const [importData, setImportData] = useState('');
   const [showPhotoPreview, setShowPhotoPreview] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const { candidates, addCandidate, isVotingOpen, toggleVoting, removeCandidate, updateCandidate } = useStore();
+  const { 
+    candidates, 
+    addCandidate, 
+    isVotingOpen, 
+    toggleVoting, 
+    removeCandidate, 
+    updateCandidate,
+    loadCandidatesFromCloud,
+    cloudSync,
+    syncError
+  } = useStore();
 
   // Estadísticas
   const stats = useMemo(() => {
@@ -59,7 +72,7 @@ export function AdminPanel() {
       leadingCandidate: candidates.length > 0 
         ? candidates.reduce((max, c) => (c.votes || 0) > (max.votes || 0) ? c : max)
         : null,
-      averageVotes: totalVotes / candidates.length || 0
+      averageVotes: candidates.length > 0 ? totalVotes / candidates.length : 0
     };
   }, [candidates]);
 
@@ -71,7 +84,7 @@ export function AdminPanel() {
     if (searchTerm) {
       filtered = filtered.filter(candidate =>
         candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.number.toString().includes(searchTerm) ||
+        candidate.number?.toString().includes(searchTerm) ||
         candidate.position.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -92,7 +105,7 @@ export function AdminPanel() {
         case 'votes':
           return (b.votes || 0) - (a.votes || 0);
         case 'number':
-          return a.number - b.number;
+          return (a.number || 0) - (b.number || 0);
         case 'position':
           return a.position.localeCompare(b.position);
         default:
@@ -103,7 +116,23 @@ export function AdminPanel() {
     return filtered;
   }, [candidates, searchTerm, positionFilter, showInactive, sortBy]);
 
-  const handleAddCandidate = (e) => {
+  const positions = ['all', ...new Set(candidates.map(c => c.position))];
+
+  // ============================================
+  // FUNCIONES DE SINCRONIZACIÓN CON LA NUBE
+  // ============================================
+
+  const handleSyncWithCloud = async () => {
+    setIsSyncing(true);
+    await loadCandidatesFromCloud();
+    setIsSyncing(false);
+  };
+
+  // ============================================
+  // FUNCIONES DE MANEJO DE CANDIDATOS
+  // ============================================
+
+  const handleAddCandidate = async (e) => {
     e.preventDefault();
     
     if (!newCandidate.name.trim() || !newCandidate.number) {
@@ -123,19 +152,19 @@ export function AdminPanel() {
       return;
     }
 
+    const candidateData = {
+      ...newCandidate,
+      number: parseInt(newCandidate.number),
+      photoUrl: newCandidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
+    };
+
     if (isEditing) {
-      updateCandidate(isEditing, {
-        ...newCandidate,
-        number: parseInt(newCandidate.number)
-      });
+      // Actualizar candidato existente
+      await updateCandidate(isEditing, candidateData);
       toast.success('Candidato actualizado exitosamente');
     } else {
-      addCandidate({
-        ...newCandidate,
-        number: parseInt(newCandidate.number),
-        photoUrl: newCandidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
-      });
-      toast.success('Candidato agregado exitosamente');
+      // Agregar nuevo candidato
+      await addCandidate(candidateData);
     }
 
     // Reset form
@@ -161,12 +190,16 @@ export function AdminPanel() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDeleteCandidate = (id, name) => {
+  const handleDeleteCandidate = async (id, name) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar a ${name}?`)) {
-      removeCandidate(id);
+      await removeCandidate(id);
       toast.success('Candidato eliminado exitosamente');
     }
   };
+
+  // ============================================
+  // FUNCIONES DE IMPORTACIÓN/EXPORTACIÓN
+  // ============================================
 
   const handleExportData = () => {
     const dataStr = JSON.stringify(candidates, null, 2);
@@ -179,22 +212,43 @@ export function AdminPanel() {
     toast.success('Datos exportados exitosamente');
   };
 
-  const handleImportData = () => {
+  const handleImportData = async () => {
     try {
       const imported = JSON.parse(importData);
-      // Validar estructura
+      
       if (!Array.isArray(imported)) {
         throw new Error('Los datos deben ser un array');
       }
-      
-      // Aquí deberías implementar la lógica para importar
-      toast.success(`Listo para importar ${imported.length} candidatos`);
+
+      // Validar estructura básica
+      const isValid = imported.every(c => 
+        c.name && c.number && c.position
+      );
+
+      if (!isValid) {
+        throw new Error('Estructura de datos inválida');
+      }
+
+      // Importar cada candidato
+      for (const candidate of imported) {
+        await addCandidate({
+          ...candidate,
+          number: parseInt(candidate.number),
+          photoUrl: candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
+        });
+      }
+
+      toast.success(`${imported.length} candidatos importados exitosamente`);
       setImportData('');
       setIsImporting(false);
     } catch (error) {
-      toast.error('Error al procesar los datos de importación');
+      toast.error('Error al procesar los datos de importación: ' + error.message);
     }
   };
+
+  // ============================================
+  // FUNCIONES UTILITARIAS
+  // ============================================
 
   const isValidUrl = (url) => {
     try {
@@ -205,11 +259,21 @@ export function AdminPanel() {
     }
   };
 
-  const positions = ['all', ...new Set(candidates.map(c => c.position))];
+  const getPositionColor = (position) => {
+    switch(position) {
+      case 'personeria': return 'blue';
+      case 'contraloria': return 'emerald';
+      default: return 'gray';
+    }
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* Header de administración */}
+      {/* Header de administración con sincronización */}
       <div className="bg-gradient-to-r from-blue-800 to-indigo-900 rounded-xl p-8 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -221,10 +285,34 @@ export function AdminPanel() {
               <p className="text-blue-100 text-sm mt-2">Gestión completa del sistema de votación electoral</p>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-lg font-medium">Votación Actual</div>
-            <div className={`text-2xl font-bold ${isVotingOpen ? 'text-emerald-300' : 'text-red-300'}`}>
-              {isVotingOpen ? 'ABIERTA' : 'CERRADA'}
+          <div className="flex items-center gap-4">
+            {/* Indicador de sincronización */}
+            <div className="text-right">
+              <button
+                onClick={handleSyncWithCloud}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+              </button>
+              {cloudSync?.lastSync && (
+                <p className="text-xs text-blue-200 mt-1">
+                  Última sincro: {new Date(cloudSync.lastSync).toLocaleTimeString()}
+                </p>
+              )}
+              {syncError && (
+                <p className="text-xs text-red-300 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {syncError}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-medium">Votación Actual</div>
+              <div className={`text-2xl font-bold ${isVotingOpen ? 'text-emerald-300' : 'text-red-300'}`}>
+                {isVotingOpen ? 'ABIERTA' : 'CERRADA'}
+              </div>
             </div>
           </div>
         </div>
@@ -374,8 +462,6 @@ export function AdminPanel() {
                     >
                       <option value="personeria">Personería</option>
                       <option value="contraloria">Contraloría</option>
-                      <option value="representante">Representante Estudiantil</option>
-                      <option value="presidente">Presidente de Curso</option>
                     </select>
                   </div>
 
@@ -508,7 +594,6 @@ export function AdminPanel() {
                   <Button
                     type="submit"
                     className="px-8 bg-gradient-to-r from-blue-800 to-emerald-800 hover:from-blue-900 hover:to-emerald-900 text-white"
-                    variant={isEditing ? "warning" : "primary"}
                   >
                     <Plus className="w-5 h-5 mr-2" />
                     {isEditing ? 'Actualizar Candidato' : 'Agregar Candidato'}
@@ -624,7 +709,7 @@ export function AdminPanel() {
                 >
                   {positions.map(pos => (
                     <option key={pos} value={pos}>
-                      {pos === 'all' ? 'Todos los cargos' : pos}
+                      {pos === 'all' ? 'Todos los cargos' : pos === 'personeria' ? 'Personería' : pos === 'contraloria' ? 'Contraloría' : pos}
                     </option>
                   ))}
                 </select>
@@ -732,102 +817,105 @@ export function AdminPanel() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <AnimatePresence>
-              {filteredCandidates.map((candidate) => (
-                <motion.div
-                  key={candidate.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  layout
-                >
-                  <Card className={`overflow-hidden h-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${
-                    candidate.inactive ? 'opacity-70' : ''
-                  }`}>
-                    {/* Encabezado con número y estado */}
-                    <div className="relative">
-                      <div className="h-48 bg-gradient-to-r from-blue-50 to-emerald-50 relative overflow-hidden">
-                        <img
-                          src={candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=300&fit=crop'}
-                          alt={candidate.name}
-                          className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/400x300?text=Sin+imagen';
-                          }}
-                        />
-                        <div className="absolute top-4 right-4">
-                          <span className="bg-gradient-to-r from-blue-800 to-emerald-800 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                            #{candidate.number}
-                          </span>
-                        </div>
-                        {candidate.inactive && (
-                          <div className="absolute top-4 left-4">
-                            <span className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-medium">
-                              Inactivo
+              {filteredCandidates.map((candidate) => {
+                const positionColor = getPositionColor(candidate.position);
+                return (
+                  <motion.div
+                    key={candidate.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    layout
+                  >
+                    <Card className={`overflow-hidden h-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${
+                      candidate.inactive ? 'opacity-70' : ''
+                    }`}>
+                      {/* Encabezado con número y estado */}
+                      <div className="relative">
+                        <div className="h-48 bg-gradient-to-r from-blue-50 to-emerald-50 relative overflow-hidden">
+                          <img
+                            src={candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=300&fit=crop'}
+                            alt={candidate.name}
+                            className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://via.placeholder.com/400x300?text=Sin+imagen';
+                            }}
+                          />
+                          <div className="absolute top-4 right-4">
+                            <span className={`bg-gradient-to-r from-${positionColor}-800 to-${positionColor}-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg`}>
+                              #{candidate.number}
                             </span>
+                          </div>
+                          {candidate.inactive && (
+                            <div className="absolute top-4 left-4">
+                              <span className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-medium">
+                                Inactivo
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Información del candidato */}
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 truncate">
+                              {candidate.name}
+                            </h3>
+                            <p className={`text-sm text-${positionColor}-800 font-medium capitalize`}>
+                              {candidate.position === 'personeria' ? 'Personería' : 'Contraloría'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-xl font-bold text-${positionColor}-800`}>
+                              {candidate.votes || 0}
+                            </div>
+                            <div className="text-xs text-gray-500">votos</div>
+                          </div>
+                        </div>
+
+                        {candidate.description && (
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                            {candidate.description}
+                          </p>
+                        )}
+
+                        {/* Acciones */}
+                        <div className="flex gap-2 pt-4 border-t border-gray-200">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEditCandidate(candidate)}
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDeleteCandidate(candidate.id, candidate.name)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {/* Información adicional */}
+                        {candidate.photoUrl && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs text-blue-600 truncate flex items-center gap-1">
+                              <ImageIcon className="w-3 h-3" />
+                              {candidate.photoUrl.substring(0, 50)}...
+                            </p>
                           </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Información del candidato */}
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900 truncate">
-                            {candidate.name}
-                          </h3>
-                          <p className="text-sm text-blue-800 font-medium capitalize">
-                            {candidate.position}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-emerald-800">
-                            {candidate.votes || 0}
-                          </div>
-                          <div className="text-xs text-gray-500">votos</div>
-                        </div>
-                      </div>
-
-                      {candidate.description && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          {candidate.description}
-                        </p>
-                      )}
-
-                      {/* Acciones */}
-                      <div className="flex gap-2 pt-4 border-t border-gray-200">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => handleEditCandidate(candidate)}
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDeleteCandidate(candidate.id, candidate.name)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      {/* Información adicional */}
-                      {candidate.photoUrl && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-blue-600 truncate flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3" />
-                            {candidate.photoUrl.substring(0, 50)}...
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
