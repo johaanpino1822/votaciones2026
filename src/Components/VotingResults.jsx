@@ -48,7 +48,26 @@ ChartJS.register(
   Filler
 );
 
-// Función para normalizar texto (quitar acentos y pasar a minúsculas)
+// ================================================
+// CONSTANTES Y CONFIGURACIÓN
+// ================================================
+
+const COLORS = {
+  azul: [30, 58, 138],      // Azul oscuro personería
+  verde: [6, 95, 70],        // Verde oscuro contraloría
+  azulClaro: [59, 130, 246],  // Azul brillante para estadísticas
+  verdeClaro: [16, 185, 129], // Verde brillante para estadísticas
+  gris: [75, 85, 99],         // Gris para textos
+  fondo: [249, 250, 251]      // Fondo gris muy claro
+};
+
+// ================================================
+// UTILIDADES
+// ================================================
+
+/**
+ * Normaliza texto: quita acentos y pasa a minúsculas
+ */
 const normalize = (text) =>
   text
     ?.toLowerCase()
@@ -56,24 +75,57 @@ const normalize = (text) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
-// Componente Card básico
+/**
+ * Formatea fecha para reportes
+ */
+const formatFecha = () => {
+  return new Date().toLocaleDateString('es-ES', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit', 
+    minute: '2-digit'
+  });
+};
+
+/**
+ * Calcula porcentaje de manera segura
+ */
+const calcularPorcentaje = (valor, total) => {
+  if (!total || total === 0) return '0.00';
+  return ((valor || 0) / total * 100).toFixed(2);
+};
+
+// ================================================
+// COMPONENTE CARD REUTILIZABLE
+// ================================================
+
 const Card = ({ children, className = '' }) => (
   <div className={`bg-white rounded-xl shadow-lg border border-gray-200 ${className}`}>
     {children}
   </div>
 );
 
+// ================================================
+// COMPONENTE PRINCIPAL
+// ================================================
+
 export function VotingResults({ candidates = [], title = "Resultados de Votación" }) {
+  // Estados
   const [showPercentages, setShowPercentages] = useState(true);
   const [viewMode, setViewMode] = useState('bar');
   const [showExportOptions, setShowExportOptions] = useState(false);
 
-  // Procesar todos los candidatos con normalización
+  // ================================================
+  // PROCESAMIENTO DE DATOS
+  // ================================================
+
+  /**
+   * Procesa y clasifica los candidatos por cargo
+   */
   const processedCandidates = useMemo(() => {
-    // Filtramos candidatos activos
     const activeCandidates = candidates.filter(c => c.active !== false);
     
-    // Separar por cargo usando normalización
     const personeria = activeCandidates
       .filter(c => normalize(c.position) === 'personeria')
       .map(c => ({
@@ -92,7 +144,6 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         cargoColor: 'green'
       }));
     
-    // Combinar todos
     return {
       todos: [...personeria, ...contraloria].sort((a, b) => (b.votes || 0) - (a.votes || 0)),
       personeria,
@@ -100,7 +151,9 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     };
   }, [candidates]);
 
-  // Calcular estadísticas generales
+  /**
+   * Calcula estadísticas generales
+   */
   const stats = useMemo(() => {
     const personeriaVotos = processedCandidates.personeria.reduce((sum, c) => sum + (c.votes || 0), 0);
     const contraloriaVotos = processedCandidates.contraloria.reduce((sum, c) => sum + (c.votes || 0), 0);
@@ -135,7 +188,10 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     };
   }, [processedCandidates]);
 
-  // Preparar datos para el gráfico
+  // ================================================
+  // CONFIGURACIÓN DEL GRÁFICO
+  // ================================================
+
   const chartConfig = useMemo(() => {
     if (!processedCandidates.todos.length) {
       return { 
@@ -258,32 +314,27 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     return { data: { labels, datasets }, options };
   }, [processedCandidates.todos, stats.totalVotos, showPercentages, viewMode]);
 
-  // Función para exportar a PDF - VERSIÓN REORGANIZADA
+  // ================================================
+  // FUNCIONES DE EXPORTACIÓN
+  // ================================================
+
+  /**
+   * Exporta a PDF con mejoras visuales
+   */
   const exportarPDF = useCallback(() => {
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-      // Configuración de colores
-      const colores = {
-        azul: [30, 58, 138],
-        verde: [6, 95, 70],
-        gris: [240, 249, 255],
-        verdeClaro: [240, 253, 244],
-        grisOscuro: [100, 100, 100]
-      };
-
-      doc.setFont('helvetica');
-
-      // ====================================================
+      // ================================================
       // PORTADA
-      // ====================================================
+      // ================================================
       
       // Fondo degradado superior
-      doc.setFillColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setFillColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.rect(0, 0, 210, 70, 'F');
       
       // Franja inferior
-      doc.setFillColor(colores.verde[0], colores.verde[1], colores.verde[2]);
+      doc.setFillColor(COLORS.verde[0], COLORS.verde[1], COLORS.verde[2]);
       doc.rect(0, 70, 210, 20, 'F');
 
       // Título principal
@@ -303,7 +354,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       doc.setFillColor(255, 255, 255);
       doc.circle(105, 120, 20, 'F');
       
-      doc.setFillColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setFillColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.circle(105, 120, 18, 'F');
       
       doc.setTextColor(255, 255, 255);
@@ -312,28 +363,24 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       doc.text('V', 105, 125, { align: 'center' });
 
       // Fecha de generación
-      doc.setTextColor(colores.grisOscuro[0], colores.grisOscuro[1], colores.grisOscuro[2]);
+      doc.setTextColor(100, 100, 100);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      const fechaStr = new Date().toLocaleDateString('es-ES', { 
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      });
-      doc.text(`Generado: ${fechaStr}`, 105, 165, { align: 'center' });
+      doc.text(`Generado: ${formatFecha()}`, 105, 165, { align: 'center' });
       doc.text('I.E.F.A.G - Sistema Electoral', 105, 173, { align: 'center' });
 
       // Línea decorativa
-      doc.setDrawColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setDrawColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.setLineWidth(0.5);
       doc.line(30, 185, 180, 185);
 
-      // ====================================================
+      // ================================================
       // PÁGINA 2 - RESULTADOS
-      // ====================================================
+      // ================================================
       doc.addPage();
 
       // Encabezado de página
-      doc.setFillColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setFillColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.rect(0, 0, 210, 15, 'F');
       
       doc.setTextColor(255, 255, 255);
@@ -342,59 +389,55 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       doc.text('I.E.F.A.G - Sistema de Votación Electrónica', 10, 10);
       doc.text(`ID: PDF-${Date.now().toString(36).toUpperCase()}`, 200, 10, { align: 'right' });
 
-      doc.setTextColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setTextColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.text('RESULTADOS ELECTORALES', 105, 30, { align: 'center' });
 
-      // ====================================================
-      // SECCIÓN: ESTADÍSTICAS GENERALES
-      // ====================================================
+      // ================================================
+      // SECCIÓN 1: ESTADÍSTICAS GENERALES
+      // ================================================
       doc.setFontSize(16);
-      doc.setTextColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setTextColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.setFont('helvetica', 'bold');
       doc.text('1. Estadísticas Generales', 20, 45);
 
-      // Tarjetas de estadísticas - Primera fila
-      doc.setFillColor(240, 249, 255); // azul muy claro
-      doc.setDrawColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      // Tarjetas de estadísticas con colores vibrantes
+      doc.setFillColor(59, 130, 246); // Azul brillante
+      doc.setDrawColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.setLineWidth(0.1);
       
       // Tarjeta 1: Total Votos
       doc.roundedRect(20, 50, 80, 25, 2, 2, 'FD');
-      doc.setTextColor(50, 50, 50);
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.text('TOTAL VOTOS', 60, 57, { align: 'center' });
       doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
       doc.text(stats.totalVotos.toString(), 60, 70, { align: 'center' });
 
       // Tarjeta 2: Total Candidatos
+      doc.setFillColor(16, 185, 129); // Verde brillante
       doc.roundedRect(110, 50, 80, 25, 2, 2, 'FD');
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
       doc.text('TOTAL CANDIDATOS', 150, 57, { align: 'center' });
       doc.setFontSize(18);
       doc.text(stats.totalCandidatos.toString(), 150, 70, { align: 'center' });
 
       // Tarjeta 3: Votos Personería
+      doc.setFillColor(37, 99, 235); // Azul medio
       doc.roundedRect(20, 85, 80, 25, 2, 2, 'FD');
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
       doc.text('VOTOS PERSONERÍA', 60, 92, { align: 'center' });
       doc.setFontSize(16);
-      doc.setTextColor(colores.azul[0], colores.azul[1], colores.azul[2]);
       doc.text(stats.personeria.votos.toString(), 60, 105, { align: 'center' });
 
       // Tarjeta 4: Votos Contraloría
+      doc.setFillColor(5, 150, 105); // Verde medio
       doc.roundedRect(110, 85, 80, 25, 2, 2, 'FD');
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(50, 50, 50);
       doc.text('VOTOS CONTRALORÍA', 150, 92, { align: 'center' });
       doc.setFontSize(16);
-      doc.setTextColor(colores.verde[0], colores.verde[1], colores.verde[2]);
       doc.text(stats.contraloria.votos.toString(), 150, 105, { align: 'center' });
 
       // Información adicional
@@ -406,11 +449,11 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
 
       let startY = 140;
 
-      // ====================================================
-      // SECCIÓN: RESULTADOS PERSONERÍA
-      // ====================================================
+      // ================================================
+      // SECCIÓN 2: RESULTADOS PERSONERÍA
+      // ================================================
       doc.setFontSize(16);
-      doc.setTextColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+      doc.setTextColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
       doc.setFont('helvetica', 'bold');
       doc.text('2. Resultados Personería', 20, startY);
 
@@ -419,9 +462,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         const data = [...processedCandidates.personeria]
           .sort((a, b) => (b.votes || 0) - (a.votes || 0))
           .map((c, i) => {
-            const porcentaje = stats.personeria.votos > 0 
-              ? ((c.votes || 0) / stats.personeria.votos * 100).toFixed(2)
-              : '0.00';
+            const porcentaje = calcularPorcentaje(c.votes, stats.personeria.votos);
             return [
               (i + 1).toString(),
               c.name || 'Sin nombre',
@@ -444,7 +485,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             textColor: [50, 50, 50]
           },
           headStyles: { 
-            fillColor: colores.azul, 
+            fillColor: COLORS.azul, 
             textColor: [255, 255, 255], 
             fontStyle: 'bold', 
             halign: 'center' 
@@ -468,13 +509,14 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         startY = startY + 25;
       }
 
-      // ====================================================
-      // SECCIÓN: RESULTADOS CONTRALORÍA
-      // ====================================================
-      startY = startY + 15;
+      // ================================================
+      // SECCIÓN 3: RESULTADOS CONTRALORÍA
+      // ================================================
+      // Añadir espacio adicional antes de la siguiente sección
+      startY = startY + 20;
       
       doc.setFontSize(16);
-      doc.setTextColor(colores.verde[0], colores.verde[1], colores.verde[2]);
+      doc.setTextColor(COLORS.verde[0], COLORS.verde[1], COLORS.verde[2]);
       doc.setFont('helvetica', 'bold');
       doc.text('3. Resultados Contraloría', 20, startY);
 
@@ -483,9 +525,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         const data = [...processedCandidates.contraloria]
           .sort((a, b) => (b.votes || 0) - (a.votes || 0))
           .map((c, i) => {
-            const porcentaje = stats.contraloria.votos > 0 
-              ? ((c.votes || 0) / stats.contraloria.votos * 100).toFixed(2)
-              : '0.00';
+            const porcentaje = calcularPorcentaje(c.votes, stats.contraloria.votos);
             return [
               (i + 1).toString(),
               c.name || 'Sin nombre',
@@ -508,7 +548,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             textColor: [50, 50, 50]
           },
           headStyles: { 
-            fillColor: colores.verde, 
+            fillColor: COLORS.verde, 
             textColor: [255, 255, 255], 
             fontStyle: 'bold', 
             halign: 'center' 
@@ -532,70 +572,81 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
         startY = startY + 25;
       }
 
-      // ====================================================
-      // SECCIÓN: GANADORES
-      // ====================================================
-      startY = startY + 20;
+      // ================================================
+      // SECCIÓN 4: GANADORES - CON ESPACIO ADECUADO
+      // ================================================
+      // Aumentar espacio para asegurar que los ganadores sean visibles
+      startY = startY + 30;
       
-      doc.setFillColor(240, 253, 244); // verde muy claro
-      doc.setDrawColor(colores.verde[0], colores.verde[1], colores.verde[2]);
+      // Verificar si necesitamos una nueva página
+      if (startY > 250) {
+        doc.addPage();
+        startY = 30;
+        
+        // Encabezado de nueva página
+        doc.setFillColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
+        doc.rect(0, 0, 210, 15, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text('I.E.F.A.G - Sistema de Votación Electrónica', 10, 10);
+        doc.text(`ID: PDF-${Date.now().toString(36).toUpperCase()}`, 200, 10, { align: 'right' });
+      }
+      
+      doc.setFillColor(240, 253, 244);
+      doc.setDrawColor(COLORS.verde[0], COLORS.verde[1], COLORS.verde[2]);
       doc.setLineWidth(0.5);
-      doc.roundedRect(20, startY, 170, 50, 3, 3, 'FD');
+      doc.roundedRect(20, startY, 170, 55, 3, 3, 'FD');
       
       doc.setFontSize(14);
-      doc.setTextColor(colores.verde[0], colores.verde[1], colores.verde[2]);
+      doc.setTextColor(COLORS.verde[0], COLORS.verde[1], COLORS.verde[2]);
       doc.setFont('helvetica', 'bold');
-      doc.text('🏆 GANADORES POR CARGO', 105, startY + 10, { align: 'center' });
+      doc.text('🏆 GANADORES POR CARGO', 105, startY + 12, { align: 'center' });
       
       // Ganador Personería
       if (stats.personeria.ganador) {
         doc.setFontSize(10);
-        doc.setTextColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+        doc.setTextColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
         doc.setFont('helvetica', 'bold');
-        doc.text('Personería:', 35, startY + 22);
+        doc.text('Personería:', 35, startY + 25);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(50, 50, 50);
-        doc.text(stats.personeria.ganador.name || 'Desconocido', 75, startY + 22);
-        const porcentajePersoneria = stats.personeria.votos > 0 
-          ? ((stats.personeria.ganador.votes || 0) / stats.personeria.votos * 100).toFixed(2)
-          : '0.00';
-        doc.text(`${stats.personeria.ganador.votes || 0} votos (${porcentajePersoneria}%)`, 75, startY + 28);
+        doc.text(stats.personeria.ganador.name || 'Desconocido', 75, startY + 25);
+        const porcentajePersoneria = calcularPorcentaje(stats.personeria.ganador.votes, stats.personeria.votos);
+        doc.text(`${stats.personeria.ganador.votes || 0} votos (${porcentajePersoneria}%)`, 75, startY + 32);
       } else {
         doc.setFontSize(10);
         doc.setTextColor(150, 150, 150);
         doc.setFont('helvetica', 'italic');
-        doc.text('No hay ganador de Personería', 75, startY + 25);
+        doc.text('No hay ganador de Personería', 75, startY + 28);
       }
       
       // Ganador Contraloría
       if (stats.contraloria.ganador) {
         doc.setFontSize(10);
-        doc.setTextColor(colores.verde[0], colores.verde[1], colores.verde[2]);
+        doc.setTextColor(COLORS.verde[0], COLORS.verde[1], COLORS.verde[2]);
         doc.setFont('helvetica', 'bold');
-        doc.text('Contraloría:', 35, startY + 38);
+        doc.text('Contraloría:', 35, startY + 42);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(50, 50, 50);
-        doc.text(stats.contraloria.ganador.name || 'Desconocido', 75, startY + 38);
-        const porcentajeContraloria = stats.contraloria.votos > 0 
-          ? ((stats.contraloria.ganador.votes || 0) / stats.contraloria.votos * 100).toFixed(2)
-          : '0.00';
-        doc.text(`${stats.contraloria.ganador.votes || 0} votos (${porcentajeContraloria}%)`, 75, startY + 44);
+        doc.text(stats.contraloria.ganador.name || 'Desconocido', 75, startY + 42);
+        const porcentajeContraloria = calcularPorcentaje(stats.contraloria.ganador.votes, stats.contraloria.votos);
+        doc.text(`${stats.contraloria.ganador.votes || 0} votos (${porcentajeContraloria}%)`, 75, startY + 49);
       } else {
         doc.setFontSize(10);
         doc.setTextColor(150, 150, 150);
         doc.setFont('helvetica', 'italic');
-        doc.text('No hay ganador de Contraloría', 75, startY + 41);
+        doc.text('No hay ganador de Contraloría', 75, startY + 45);
       }
 
-      // ====================================================
+      // ================================================
       // PIE DE PÁGINA
-      // ====================================================
+      // ================================================
       const totalPaginas = doc.internal.getNumberOfPages();
       for (let i = 1; i <= totalPaginas; i++) {
         doc.setPage(i);
-        doc.setFillColor(colores.azul[0], colores.azul[1], colores.azul[2]);
+        doc.setFillColor(COLORS.azul[0], COLORS.azul[1], COLORS.azul[2]);
         doc.rect(0, 285, 210, 12, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(8);
@@ -614,10 +665,11 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     }
   }, [processedCandidates, stats]);
 
-  // Función para exportar a JSON
+  /**
+   * Exporta a JSON
+   */
   const exportarJSON = useCallback(() => {
     try {
-      // Ordenar personeria por votos
       const personeriaOrdenada = [...processedCandidates.personeria].sort((a, b) => (b.votes || 0) - (a.votes || 0));
       const contraloriaOrdenada = [...processedCandidates.contraloria].sort((a, b) => (b.votes || 0) - (a.votes || 0));
       
@@ -635,9 +687,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               nombre: stats.personeria.ganador.name || 'Sin nombre',
               numero: stats.personeria.ganador.number,
               votos: stats.personeria.ganador.votes || 0,
-              porcentaje: stats.personeria.votos > 0 
-                ? ((stats.personeria.ganador.votes || 0) / stats.personeria.votos * 100).toFixed(2) + '%' 
-                : '0%'
+              porcentaje: calcularPorcentaje(stats.personeria.ganador.votes, stats.personeria.votos) + '%'
             } : null
           },
           contraloria: {
@@ -648,9 +698,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               nombre: stats.contraloria.ganador.name || 'Sin nombre',
               numero: stats.contraloria.ganador.number,
               votos: stats.contraloria.ganador.votes || 0,
-              porcentaje: stats.contraloria.votos > 0 
-                ? ((stats.contraloria.ganador.votes || 0) / stats.contraloria.votos * 100).toFixed(2) + '%' 
-                : '0%'
+              porcentaje: calcularPorcentaje(stats.contraloria.ganador.votes, stats.contraloria.votos) + '%'
             } : null
           }
         },
@@ -660,9 +708,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             nombre: c.name || 'Sin nombre',
             numero: c.number,
             votos: c.votes || 0,
-            porcentaje: stats.personeria.votos > 0 
-              ? ((c.votes || 0) / stats.personeria.votos * 100).toFixed(2) + '%' 
-              : '0%',
+            porcentaje: calcularPorcentaje(c.votes, stats.personeria.votos) + '%',
             ganador: i === 0
           })),
           contraloria: contraloriaOrdenada.map((c, i) => ({
@@ -670,9 +716,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
             nombre: c.name || 'Sin nombre',
             numero: c.number,
             votos: c.votes || 0,
-            porcentaje: stats.contraloria.votos > 0 
-              ? ((c.votes || 0) / stats.contraloria.votos * 100).toFixed(2) + '%' 
-              : '0%',
+            porcentaje: calcularPorcentaje(c.votes, stats.contraloria.votos) + '%',
             ganador: i === 0
           }))
         }
@@ -692,14 +736,16 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     }
   }, [processedCandidates, stats, title]);
 
-  // Función para exportar a CSV
+  /**
+   * Exporta a CSV
+   */
   const exportarCSV = useCallback(() => {
     try {
       const lineas = [];
       
       // Título
       lineas.push(['RESULTADOS ELECTORALES COMPLETOS']);
-      lineas.push([`Fecha: ${new Date().toLocaleDateString()}`]);
+      lineas.push([`Fecha: ${formatFecha()}`]);
       lineas.push([]);
       
       // Estadísticas generales
@@ -732,9 +778,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       const personeriaOrdenada = [...processedCandidates.personeria].sort((a, b) => (b.votes || 0) - (a.votes || 0));
       
       personeriaOrdenada.forEach((c, i) => {
-        const porcentaje = stats.personeria.votos > 0 
-          ? ((c.votes || 0) / stats.personeria.votos * 100).toFixed(2) + '%'
-          : '0%';
+        const porcentaje = calcularPorcentaje(c.votes, stats.personeria.votos) + '%';
         lineas.push([
           (i + 1).toString(),
           c.name || 'Sin nombre',
@@ -758,9 +802,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       const contraloriaOrdenada = [...processedCandidates.contraloria].sort((a, b) => (b.votes || 0) - (a.votes || 0));
       
       contraloriaOrdenada.forEach((c, i) => {
-        const porcentaje = stats.contraloria.votos > 0 
-          ? ((c.votes || 0) / stats.contraloria.votos * 100).toFixed(2) + '%'
-          : '0%';
+        const porcentaje = calcularPorcentaje(c.votes, stats.contraloria.votos) + '%';
         lineas.push([
           (i + 1).toString(),
           c.name || 'Sin nombre',
@@ -790,7 +832,9 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     }
   }, [processedCandidates, stats]);
 
-  // Función para compartir
+  /**
+   * Compartir resultados
+   */
   const compartir = useCallback(() => {
     try {
       const texto = `Resultados Electorales I.E.F.A.G
@@ -812,7 +856,9 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
     }
   }, [stats, title]);
 
-  // Función para imprimir
+  /**
+   * Imprimir resultados
+   */
   const imprimir = useCallback(() => {
     try {
       const ventana = window.open('', '_blank');
@@ -822,9 +868,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       
       const personeriaRows = personeriaOrdenada.length > 0
         ? personeriaOrdenada.map((c, i) => {
-            const porcentaje = stats.personeria.votos > 0 
-              ? ((c.votes || 0) / stats.personeria.votos * 100).toFixed(2)
-              : '0.00';
+            const porcentaje = calcularPorcentaje(c.votes, stats.personeria.votos);
             return `
               <tr ${i === 0 ? 'class="winner"' : ''}>
                 <td>${i + 1}</td>
@@ -839,9 +883,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       
       const contraloriaRows = contraloriaOrdenada.length > 0
         ? contraloriaOrdenada.map((c, i) => {
-            const porcentaje = stats.contraloria.votos > 0 
-              ? ((c.votes || 0) / stats.contraloria.votos * 100).toFixed(2)
-              : '0.00';
+            const porcentaje = calcularPorcentaje(c.votes, stats.contraloria.votos);
             return `
               <tr ${i === 0 ? 'class="winner"' : ''}>
                 <td>${i + 1}</td>
@@ -878,10 +920,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
           </head>
           <body>
             <h1>${title} - RESULTADOS COMPLETOS</h1>
-            <p>Fecha: ${new Date().toLocaleDateString('es-ES', { 
-              year: 'numeric', month: 'long', day: 'numeric',
-              hour: '2-digit', minute: '2-digit'
-            })}</p>
+            <p>Fecha: ${formatFecha()}</p>
             
             <div class="stats">
               <div class="stat-card">
@@ -906,12 +945,12 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               <div class="winner-card">
                 <div style="font-size:14px; color:#1e3a8a;">🏆 GANADOR PERSONERÍA</div>
                 <div style="font-size:18px; font-weight:bold; color:#1e3a8a;">${stats.personeria.ganador?.name || 'No hay ganador'}</div>
-                <div>${stats.personeria.ganador?.votes || 0} votos ${stats.personeria.votos > 0 ? `(${((stats.personeria.ganador?.votes || 0) / stats.personeria.votos * 100).toFixed(2)}%)` : ''}</div>
+                <div>${stats.personeria.ganador?.votes || 0} votos ${calcularPorcentaje(stats.personeria.ganador?.votes, stats.personeria.votos)}%</div>
               </div>
               <div class="winner-card">
                 <div style="font-size:14px; color:#065f46;">🏆 GANADOR CONTRALORÍA</div>
                 <div style="font-size:18px; font-weight:bold; color:#065f46;">${stats.contraloria.ganador?.name || 'No hay ganador'}</div>
-                <div>${stats.contraloria.ganador?.votes || 0} votos ${stats.contraloria.votos > 0 ? `(${((stats.contraloria.ganador?.votes || 0) / stats.contraloria.votos * 100).toFixed(2)}%)` : ''}</div>
+                <div>${stats.contraloria.ganador?.votes || 0} votos ${calcularPorcentaje(stats.contraloria.ganador?.votes, stats.contraloria.votos)}%</div>
               </div>
             </div>
             
@@ -953,6 +992,10 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
       toast.error('Error al preparar la impresión');
     }
   }, [processedCandidates, stats, title]);
+
+  // ================================================
+  // RENDERIZADO
+  // ================================================
 
   if (!candidates || candidates.length === 0) {
     return (
@@ -1197,8 +1240,8 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
               <tbody className="divide-y divide-gray-200">
                 {processedCandidates.todos.map((c, i) => {
                   const votosCargo = c.cargoClass === 'personeria' ? stats.personeria.votos : stats.contraloria.votos;
-                  const porcentajeCargo = votosCargo > 0 ? ((c.votes || 0) / votosCargo * 100).toFixed(2) : '0.00';
-                  const porcentajeGlobal = stats.totalVotos > 0 ? ((c.votes || 0) / stats.totalVotos * 100).toFixed(2) : '0.00';
+                  const porcentajeCargo = calcularPorcentaje(c.votes, votosCargo);
+                  const porcentajeGlobal = calcularPorcentaje(c.votes, stats.totalVotos);
                   const esGanador = (c.cargoClass === 'personeria' && c.id === stats.personeria.ganador?.id) ||
                                    (c.cargoClass === 'contraloria' && c.id === stats.contraloria.ganador?.id);
                   
@@ -1283,9 +1326,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                     {[...processedCandidates.personeria]
                       .sort((a, b) => (b.votes || 0) - (a.votes || 0))
                       .map((c, idx) => {
-                        const porcentaje = stats.personeria.votos > 0 
-                          ? ((c.votes || 0) / stats.personeria.votos * 100).toFixed(1)
-                          : '0.0';
+                        const porcentaje = calcularPorcentaje(c.votes, stats.personeria.votos);
                         return (
                           <tr key={c.id} className={idx === 0 ? 'bg-yellow-50' : 'hover:bg-blue-50'}>
                             <td className="py-2 text-sm">{idx + 1}</td>
@@ -1326,9 +1367,7 @@ export function VotingResults({ candidates = [], title = "Resultados de Votació
                     {[...processedCandidates.contraloria]
                       .sort((a, b) => (b.votes || 0) - (a.votes || 0))
                       .map((c, idx) => {
-                        const porcentaje = stats.contraloria.votos > 0 
-                          ? ((c.votes || 0) / stats.contraloria.votos * 100).toFixed(1)
-                          : '0.0';
+                        const porcentaje = calcularPorcentaje(c.votes, stats.contraloria.votos);
                         return (
                           <tr key={c.id} className={idx === 0 ? 'bg-yellow-50' : 'hover:bg-emerald-50'}>
                             <td className="py-2 text-sm">{idx + 1}</td>

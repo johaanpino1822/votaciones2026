@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   Users, 
@@ -18,14 +18,61 @@ import {
   XCircle,
   AlertCircle,
   Trophy,
-  RefreshCw,
-  Cloud
+  RefreshCw
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../Components/ui/Buttom';
 import { Card } from '../Components/ui/Card';
 import toast from 'react-hot-toast';
+
+// ============================================
+// CONSTANTES GLOBALES
+// ============================================
+
+const PLACEHOLDER_IMAGES = {
+  DEFAULT: 'https://placehold.co/400x300/2563eb/FFFFFF/png?text=Sin+imagen',
+  ERROR: 'https://placehold.co/400x300/ef4444/FFFFFF/png?text=Error',
+  AVATAR: 'https://placehold.co/300x300/2563eb/FFFFFF/png?text=Foto',
+  MALE_EXAMPLE: 'https://placehold.co/300x300/1e3a8a/FFFFFF/png?text=Ejemplo+M',
+  FEMALE_EXAMPLE: 'https://placehold.co/300x300/059669/FFFFFF/png?text=Ejemplo+F'
+};
+
+const UNSPLASH_EXAMPLES = {
+  MALE: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop',
+  FEMALE: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop'
+};
+
+// ============================================
+// FUNCIONES UTILITARIAS
+// ============================================
+
+const isValidUrl = (url) => {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+const getPositionColor = (position) => {
+  switch(position) {
+    case 'personeria': return 'blue';
+    case 'contraloria': return 'emerald';
+    default: return 'gray';
+  }
+};
+
+const handleImageError = (e) => {
+  e.target.onerror = null; // Prevenir bucle infinito
+  e.target.src = PLACEHOLDER_IMAGES.ERROR;
+};
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 
 export function AdminPanel() {
   const [newCandidate, setNewCandidate] = useState({
@@ -58,7 +105,10 @@ export function AdminPanel() {
     syncError
   } = useStore();
 
-  // Estadísticas
+  // ============================================
+  // ESTADÍSTICAS
+  // ============================================
+
   const stats = useMemo(() => {
     const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
     const activeCandidates = candidates.filter(c => !c.inactive);
@@ -76,7 +126,10 @@ export function AdminPanel() {
     };
   }, [candidates]);
 
-  // Candidatos filtrados y ordenados
+  // ============================================
+  // FILTROS Y ORDENAMIENTO
+  // ============================================
+
   const filteredCandidates = useMemo(() => {
     let filtered = candidates;
     
@@ -146,7 +199,7 @@ export function AdminPanel() {
       return;
     }
 
-    // Validar URL de foto
+    // Validar URL de foto (opcional)
     if (newCandidate.photoUrl && !isValidUrl(newCandidate.photoUrl)) {
       toast.error('Por favor ingresa una URL válida para la foto');
       return;
@@ -155,7 +208,7 @@ export function AdminPanel() {
     const candidateData = {
       ...newCandidate,
       number: parseInt(newCandidate.number),
-      photoUrl: newCandidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
+      photoUrl: newCandidate.photoUrl || PLACEHOLDER_IMAGES.AVATAR
     };
 
     if (isEditing) {
@@ -234,7 +287,7 @@ export function AdminPanel() {
         await addCandidate({
           ...candidate,
           number: parseInt(candidate.number),
-          photoUrl: candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
+          photoUrl: candidate.photoUrl || PLACEHOLDER_IMAGES.AVATAR
         });
       }
 
@@ -243,27 +296,6 @@ export function AdminPanel() {
       setIsImporting(false);
     } catch (error) {
       toast.error('Error al procesar los datos de importación: ' + error.message);
-    }
-  };
-
-  // ============================================
-  // FUNCIONES UTILITARIAS
-  // ============================================
-
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const getPositionColor = (position) => {
-    switch(position) {
-      case 'personeria': return 'blue';
-      case 'contraloria': return 'emerald';
-      default: return 'gray';
     }
   };
 
@@ -507,7 +539,7 @@ export function AdminPanel() {
                     </p>
                   </div>
 
-                  {/* Botones de ejemplo rápido */}
+                  {/* Botones de ejemplo rápido - CORREGIDO */}
                   <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
                     <p className="text-sm font-medium text-blue-800 mb-2">
                       ¿Necesitas una imagen?
@@ -518,7 +550,7 @@ export function AdminPanel() {
                         onClick={() => {
                           setNewCandidate({
                             ...newCandidate,
-                            photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&h=300&fit=crop'
+                            photoUrl: UNSPLASH_EXAMPLES.MALE
                           });
                         }}
                         className="text-sm bg-white text-blue-700 px-3 py-2 rounded border border-blue-200 hover:bg-blue-50 transition"
@@ -530,7 +562,7 @@ export function AdminPanel() {
                         onClick={() => {
                           setNewCandidate({
                             ...newCandidate,
-                            photoUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop'
+                            photoUrl: UNSPLASH_EXAMPLES.FEMALE
                           });
                         }}
                         className="text-sm bg-white text-blue-700 px-3 py-2 rounded border border-blue-200 hover:bg-blue-50 transition"
@@ -557,11 +589,7 @@ export function AdminPanel() {
                                 src={newCandidate.photoUrl}
                                 alt="Vista previa"
                                 className="w-24 h-24 object-cover rounded-full border-4 border-white shadow-lg"
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = 'https://via.placeholder.com/150?text=Error';
-                                  toast.error('No se pudo cargar la imagen');
-                                }}
+                                onError={handleImageError}
                               />
                               <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center">
                                 <ImageIcon className="w-3 h-3 text-white" />
@@ -834,13 +862,10 @@ export function AdminPanel() {
                       <div className="relative">
                         <div className="h-48 bg-gradient-to-r from-blue-50 to-emerald-50 relative overflow-hidden">
                           <img
-                            src={candidate.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=300&fit=crop'}
+                            src={candidate.photoUrl || PLACEHOLDER_IMAGES.DEFAULT}
                             alt={candidate.name}
                             className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'https://via.placeholder.com/400x300?text=Sin+imagen';
-                            }}
+                            onError={handleImageError}
                           />
                           <div className="absolute top-4 right-4">
                             <span className={`bg-gradient-to-r from-${positionColor}-800 to-${positionColor}-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg`}>
