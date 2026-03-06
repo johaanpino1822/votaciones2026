@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 
 // ============================================
-// CONFIGURACIÓN DE MOCKAPI.IO (¡REEMPLAZA CON TU URL!)
+// CONFIGURACIÓN DE MOCKAPI.IO
 // ============================================
 const API_BASE_URL = 'https://699f414278dda56d396ccd07.mockapi.io/api/v1';
 const CANDIDATES_ENDPOINT = `${API_BASE_URL}/candidates`;
@@ -35,7 +35,8 @@ export const useStore = create(
         remainingTime: '2h 30m',
         positions: [
           { name: 'personeria', votes: 0, percentage: 0, candidates: 0 },
-          { name: 'contraloria', votes: 0, percentage: 0, candidates: 0 }
+          { name: 'contraloria', votes: 0, percentage: 0, candidates: 0 },
+          { name: 'representante', votes: 0, percentage: 0, candidates: 0 }
         ],
         hourlyActivity: [
           { time: '09:00-10:00', votes: 0, percentage: 0 },
@@ -61,23 +62,18 @@ export const useStore = create(
 
       // Contraseñas del sistema
       systemPasswords: {
-        jury: 'mesa2025',
-        admin: 'admin2025'
+        jury: 'M354ieFAG',
+        admin: 'ieFAG2026A9m1n'
       },
 
       // ============================================
-      // FUNCIONES DE SINCRONIZACIÓN CON LA NUBE
+      // FUNCIONES DE SINCRONIZACIÓN
       // ============================================
 
-      /**
-       * Carga todos los candidatos desde MockAPI.io
-       * Se llama al iniciar la aplicación
-       */
       loadCandidatesFromCloud: async () => {
         set({ isLoading: true, syncError: null });
 
         try {
-          console.log('📡 Cargando candidatos desde:', CANDIDATES_ENDPOINT);
           const response = await fetch(CANDIDATES_ENDPOINT);
 
           if (!response.ok) {
@@ -85,9 +81,7 @@ export const useStore = create(
           }
 
           const cloudCandidates = await response.json();
-          console.log('✅ Candidatos recibidos:', cloudCandidates.length);
 
-          // Actualizar estado local con los datos de la nube
           set({
             candidates: cloudCandidates,
             isLoading: false,
@@ -95,11 +89,9 @@ export const useStore = create(
             cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
           });
 
-          // Recalcular estadísticas
           get().recalculateStats();
           toast.success('Datos sincronizados desde la nube');
         } catch (error) {
-          console.error('❌ Error cargando candidatos:', error);
           set({
             isLoading: false,
             syncError: 'No se pudo conectar con la nube. Usando datos locales.'
@@ -109,21 +101,35 @@ export const useStore = create(
       },
 
       /**
-       * Guarda un nuevo candidato en MockAPI.io y actualiza el estado local
+       * FUNCIÓN CORREGIDA - Permite mismo número en diferentes cargos
        */
       addCandidate: async (candidateData) => {
-        set({ cloudSync: { isSyncing: true, lastSync: get().cloudSync.lastSync } });
+        const state = get();
+        
+        // ===== VALIDACIÓN CORRECTA =====
+        // SOLO verificar si el número ya existe en el MISMO cargo
+        const existeEnMismoCargo = state.candidates.some(
+          c => String(c.number) === String(candidateData.number) && 
+               c.position === candidateData.position
+        );
+
+        if (existeEnMismoCargo) {
+          toast.error(`El número ${candidateData.number} ya existe en ${candidateData.position}`);
+          throw new Error('DUPLICADO_EN_MISMO_CARGO');
+        }
+        // ===============================
+
+        set({ cloudSync: { isSyncing: true, lastSync: state.cloudSync.lastSync } });
 
         const newCandidate = {
           ...candidateData,
-          id: Date.now().toString(), // ID temporal
+          id: Date.now().toString(),
           votes: 0,
           active: true,
           createdAt: new Date().toISOString()
         };
 
         try {
-          console.log('📤 Enviando candidato a:', CANDIDATES_ENDPOINT);
           const response = await fetch(CANDIDATES_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -135,14 +141,9 @@ export const useStore = create(
           }
 
           const savedCandidate = await response.json();
-          console.log('✅ Candidato guardado en nube:', savedCandidate);
 
-          // Actualizar estado local con el candidato devuelto por la API (con su ID real)
           set((state) => {
-            // Filtrar el candidato temporal si existe
-            const filteredCandidates = state.candidates.filter(c => c.id !== newCandidate.id);
-            const updatedCandidates = [...filteredCandidates, savedCandidate];
-
+            const updatedCandidates = [...state.candidates, savedCandidate];
             return {
               candidates: updatedCandidates,
               cloudSync: { lastSync: new Date().toISOString(), isSyncing: false }
@@ -150,12 +151,25 @@ export const useStore = create(
           });
 
           get().recalculateStats();
-          toast.success('✅ Candidato guardado en la nube');
+          
+          // Verificar si el número existe en otro cargo (solo informativo)
+          const existeEnOtroCargo = state.candidates.some(
+            c => String(c.number) === String(candidateData.number) && 
+                 c.position !== candidateData.position
+          );
+          
+          if (existeEnOtroCargo) {
+            toast.success(`✅ Candidato agregado (el número ${candidateData.number} ya existe en otro cargo)`);
+          } else {
+            toast.success('✅ Candidato guardado en la nube');
+          }
+          
           return savedCandidate;
 
         } catch (error) {
-          console.error('❌ Error guardando candidato:', error);
-          // Fallback: guardar localmente si falla la nube
+          console.error('Error:', error);
+          
+          // Fallback local
           set((state) => ({
             candidates: [...state.candidates, newCandidate],
             cloudSync: { ...state.cloudSync, isSyncing: false },
@@ -167,12 +181,8 @@ export const useStore = create(
         }
       },
 
-      /**
-       * Actualiza un candidato existente en MockAPI.io y localmente
-       */
       updateCandidate: async (candidateId, candidateData) => {
         try {
-          console.log(`📝 Actualizando candidato ${candidateId} en:`, `${CANDIDATES_ENDPOINT}/${candidateId}`);
           const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -197,18 +207,13 @@ export const useStore = create(
           return true;
 
         } catch (error) {
-          console.error('❌ Error actualizando candidato:', error);
           toast.error('Error al actualizar en la nube');
           return false;
         }
       },
 
-      /**
-       * Elimina un candidato de MockAPI.io y localmente
-       */
       deleteCandidate: async (candidateId) => {
         try {
-          console.log(`🗑️ Eliminando candidato ${candidateId} de:`, `${CANDIDATES_ENDPOINT}/${candidateId}`);
           const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
             method: 'DELETE'
           });
@@ -227,20 +232,15 @@ export const useStore = create(
           return true;
 
         } catch (error) {
-          console.error('❌ Error eliminando candidato:', error);
           toast.error('Error al eliminar de la nube');
           return false;
         }
       },
 
-      /**
-       * Registra un voto, actualizando en MockAPI.io y localmente
-       */
       castVote: async (candidateId, position) => {
         const state = get();
         const user = state.user;
 
-        // Validaciones
         if (!user) {
           toast.error('Debes iniciar sesión');
           return false;
@@ -260,7 +260,6 @@ export const useStore = create(
         const newVoteCount = (candidate.votes || 0) + 1;
 
         try {
-          // Actualizar votos en MockAPI
           const response = await fetch(`${CANDIDATES_ENDPOINT}/${candidateId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -273,7 +272,6 @@ export const useStore = create(
 
           const updatedCandidate = await response.json();
 
-          // Actualizar estado local
           set((state) => {
             const updatedCandidates = state.candidates.map(c =>
               c.id === candidateId ? updatedCandidate : c
@@ -302,7 +300,6 @@ export const useStore = create(
             };
           });
 
-          // Recalcular stats después del voto
           get().recalculateStats();
           get().updateCloudSyncTime();
 
@@ -310,27 +307,18 @@ export const useStore = create(
           return true;
 
         } catch (error) {
-          console.error('❌ Error registrando voto:', error);
           toast.error('Error al registrar voto en la nube');
           return false;
         }
       },
 
-      // ============================================
-      // FUNCIONES AUXILIARES
-      // ============================================
-
-      /**
-       * Recalcula todas las estadísticas basadas en los candidatos actuales
-       */
       recalculateStats: () => {
         const state = get();
         const candidates = state.candidates;
         const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
-        const activeCandidates = candidates.filter(c => c.active !== false);
 
-        const positions = ['personeria', 'contraloria'].map(pos => {
-          const posCandidates = candidates.filter(c => c.position === pos && c.active !== false);
+        const positions = ['personeria', 'contraloria', 'representante'].map(pos => {
+          const posCandidates = candidates.filter(c => c.position === pos);
           const posVotes = posCandidates.reduce((sum, c) => sum + (c.votes || 0), 0);
 
           return {
@@ -346,33 +334,20 @@ export const useStore = create(
             ...state.votingStats,
             totalVotes,
             uniqueVoters: state.currentVoterNumber - 1,
-            votingRate: totalVotes > 0
-              ? `${Math.round((totalVotes / (state.currentVoterNumber * 2)) * 100)}%`
-              : '0%',
             positions
           }
         });
       },
 
-      /**
-       * Actualiza la marca de última sincronización
-       */
       updateCloudSyncTime: () => {
         set((state) => ({
           cloudSync: { ...state.cloudSync, lastSync: new Date().toISOString() }
         }));
       },
 
-      /**
-       * Fuerza una sincronización manual con la nube
-       */
       forceSync: async () => {
         await get().loadCandidatesFromCloud();
       },
-
-      // ============================================
-      // FUNCIONES DE AUTENTICACIÓN Y CONTROL
-      // ============================================
 
       login: (userData) => {
         set({
@@ -401,40 +376,19 @@ export const useStore = create(
         return username === 'admin' && password === get().systemPasswords.admin;
       },
 
-      // ============================================
-      // FUNCIONES DE CONSULTA
-      // ============================================
-
       getCandidatesByPosition: (position) => {
-        return get().candidates.filter(c =>
-          c.position === position && c.active !== false
-        );
+        return get().candidates.filter(c => c.position === position);
       },
 
       getTopCandidates: (limit = 5) => {
         return [...get().candidates]
-          .filter(c => c.active !== false)
           .sort((a, b) => (b.votes || 0) - (a.votes || 0))
           .slice(0, limit);
-      },
-
-      resetVoting: async () => {
-        // Implementa lógica para resetear votos si es necesario
-        toast.success('Función de reseteo no implementada en este ejemplo');
       }
     }),
     {
       name: 'voting-app-storage',
       getStorage: () => localStorage,
-      partialize: (state) => ({
-        // Solo persistir localmente como respaldo
-        candidates: state.candidates,
-        currentVoterNumber: state.currentVoterNumber,
-        votingHistory: state.votingHistory,
-        isVotingOpen: state.isVotingOpen,
-        timeRemaining: state.timeRemaining,
-        systemPasswords: state.systemPasswords
-      })
     }
   )
 );

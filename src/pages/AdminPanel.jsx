@@ -65,6 +65,14 @@ const getPositionColor = (position) => {
   }
 };
 
+const getPositionName = (position) => {
+  switch(position) {
+    case 'personeria': return 'Personería';
+    case 'contraloria': return 'Contraloría';
+    default: return position;
+  }
+};
+
 const handleImageError = (e) => {
   e.target.onerror = null; // Prevenir bucle infinito
   e.target.src = PLACEHOLDER_IMAGES.ERROR;
@@ -182,7 +190,57 @@ export function AdminPanel() {
   };
 
   // ============================================
-  // FUNCIONES DE MANEJO DE CANDIDATOS
+  // FUNCIÓN PARA VERIFICAR DISPONIBILIDAD DE NÚMERO (CORREGIDA)
+  // ============================================
+
+  const checkNumberAvailability = (number, position, excludeId = null) => {
+    if (!number) return { disponible: true, mensaje: '' };
+    
+    const numero = parseInt(number);
+    
+    // Buscar en el MISMO cargo
+    const candidatoEnMismoCargo = candidates.find(
+      c => c.number === numero && 
+           c.position === position && 
+           c.id !== excludeId
+    );
+    
+    if (candidatoEnMismoCargo) {
+      return {
+        disponible: false,
+        mensaje: `❌ El número ${numero} ya está siendo usado por ${candidatoEnMismoCargo.name} en ${getPositionName(position)}`
+      };
+    }
+    
+    // Buscar en OTRO cargo (solo informativo)
+    const candidatoEnOtroCargo = candidates.find(
+      c => c.number === numero && 
+           c.position !== position &&
+           c.id !== excludeId
+    );
+    
+    if (candidatoEnOtroCargo) {
+      return {
+        disponible: true,
+        mensaje: `✅ El número ${numero} está disponible (ya existe en ${getPositionName(candidatoEnOtroCargo.position)})`
+      };
+    }
+    
+    return {
+      disponible: true,
+      mensaje: `✅ El número ${numero} está disponible`
+    };
+  };
+
+  // Obtener disponibilidad actual
+  const numberStatus = checkNumberAvailability(
+    newCandidate.number, 
+    newCandidate.position, 
+    isEditing
+  );
+
+  // ============================================
+  // FUNCIONES DE MANEJO DE CANDIDATOS (CORREGIDAS)
   // ============================================
 
   const handleAddCandidate = async (e) => {
@@ -193,11 +251,21 @@ export function AdminPanel() {
       return;
     }
 
-    // Validar número único
-    if (candidates.some(c => c.number === parseInt(newCandidate.number) && c.id !== isEditing)) {
-      toast.error('Ya existe un candidato con este número');
+    const numero = parseInt(newCandidate.number);
+
+    // ===== VALIDACIÓN CORREGIDA =====
+    // Verificar SOLO en el MISMO cargo
+    const existeEnMismoCargo = candidates.some(
+      c => c.number === numero && 
+           c.position === newCandidate.position && 
+           c.id !== isEditing
+    );
+
+    if (existeEnMismoCargo) {
+      toast.error(`El número ${numero} ya existe en ${getPositionName(newCandidate.position)}`);
       return;
     }
+    // ================================
 
     // Validar URL de foto (opcional)
     if (newCandidate.photoUrl && !isValidUrl(newCandidate.photoUrl)) {
@@ -207,28 +275,44 @@ export function AdminPanel() {
 
     const candidateData = {
       ...newCandidate,
-      number: parseInt(newCandidate.number),
+      number: numero,
       photoUrl: newCandidate.photoUrl || PLACEHOLDER_IMAGES.AVATAR
     };
 
-    if (isEditing) {
-      // Actualizar candidato existente
-      await updateCandidate(isEditing, candidateData);
-      toast.success('Candidato actualizado exitosamente');
-    } else {
-      // Agregar nuevo candidato
-      await addCandidate(candidateData);
-    }
+    try {
+      if (isEditing) {
+        // Actualizar candidato existente
+        await updateCandidate(isEditing, candidateData);
+        toast.success('Candidato actualizado exitosamente');
+      } else {
+        // Agregar nuevo candidato
+        await addCandidate(candidateData);
+        
+        // Mensaje informativo si el número existe en otro cargo
+        const existeEnOtroCargo = candidates.some(
+          c => c.number === numero && c.position !== newCandidate.position
+        );
+        
+        if (existeEnOtroCargo) {
+          toast.success(`✅ Candidato agregado (el número ${numero} ya existe en otro cargo)`);
+        } else {
+          toast.success('✅ Candidato agregado exitosamente');
+        }
+      }
 
-    // Reset form
-    setNewCandidate({
-      name: '',
-      number: '',
-      position: 'personeria',
-      photoUrl: '',
-      description: ''
-    });
-    setIsEditing(null);
+      // Reset form
+      setNewCandidate({
+        name: '',
+        number: '',
+        position: 'personeria',
+        photoUrl: '',
+        description: ''
+      });
+      setIsEditing(null);
+      
+    } catch (error) {
+      toast.error('Error al guardar el candidato');
+    }
   };
 
   const handleEditCandidate = (candidate) => {
@@ -283,15 +367,30 @@ export function AdminPanel() {
       }
 
       // Importar cada candidato
+      let importados = 0;
+      let omitidos = 0;
+
       for (const candidate of imported) {
-        await addCandidate({
-          ...candidate,
-          number: parseInt(candidate.number),
-          photoUrl: candidate.photoUrl || PLACEHOLDER_IMAGES.AVATAR
-        });
+        const numero = parseInt(candidate.number);
+        
+        // Verificar si ya existe en el mismo cargo
+        const existe = candidates.some(
+          c => c.number === numero && c.position === candidate.position
+        );
+
+        if (!existe) {
+          await addCandidate({
+            ...candidate,
+            number: numero,
+            photoUrl: candidate.photoUrl || PLACEHOLDER_IMAGES.AVATAR
+          });
+          importados++;
+        } else {
+          omitidos++;
+        }
       }
 
-      toast.success(`${imported.length} candidatos importados exitosamente`);
+      toast.success(`${importados} candidatos importados${omitidos > 0 ? `, ${omitidos} omitidos (duplicados en mismo cargo)` : ''}`);
       setImportData('');
       setIsImporting(false);
     } catch (error) {
@@ -345,6 +444,18 @@ export function AdminPanel() {
               <div className={`text-2xl font-bold ${isVotingOpen ? 'text-emerald-300' : 'text-red-300'}`}>
                 {isVotingOpen ? 'ABIERTA' : 'CERRADA'}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mensaje informativo sobre números */}
+        <div className="mt-4 bg-green-600/30 p-4 rounded-lg text-sm text-white">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">ℹ️</span>
+            <div>
+              <strong>NUEVA REGLA:</strong> Puedes tener el MISMO número en DIFERENTES cargos.
+              <br />
+              <span className="text-xs opacity-90">Ejemplo: #1 en Personería, #1 en Contraloría</span>
             </div>
           </div>
         </div>
@@ -475,11 +586,22 @@ export function AdminPanel() {
                       type="number"
                       value={newCandidate.number}
                       onChange={(e) => setNewCandidate({ ...newCandidate, number: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                        newCandidate.number && !numberStatus.disponible
+                          ? 'border-red-300 bg-red-50'
+                          : newCandidate.number && numberStatus.disponible
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="1"
                       min="1"
                       required
                     />
+                    {newCandidate.number && (
+                      <p className={`text-sm mt-1 ${numberStatus.disponible ? 'text-green-600' : 'text-red-600'}`}>
+                        {numberStatus.mensaje}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -539,7 +661,7 @@ export function AdminPanel() {
                     </p>
                   </div>
 
-                  {/* Botones de ejemplo rápido - CORREGIDO */}
+                  {/* Botones de ejemplo rápido */}
                   <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
                     <p className="text-sm font-medium text-blue-800 mb-2">
                       ¿Necesitas una imagen?
@@ -621,7 +743,10 @@ export function AdminPanel() {
                   </div>
                   <Button
                     type="submit"
-                    className="px-8 bg-gradient-to-r from-blue-800 to-emerald-800 hover:from-blue-900 hover:to-emerald-900 text-white"
+                    disabled={newCandidate.number && !numberStatus.disponible}
+                    className={`px-8 bg-gradient-to-r from-blue-800 to-emerald-800 hover:from-blue-900 hover:to-emerald-900 text-white ${
+                      newCandidate.number && !numberStatus.disponible ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     <Plus className="w-5 h-5 mr-2" />
                     {isEditing ? 'Actualizar Candidato' : 'Agregar Candidato'}
